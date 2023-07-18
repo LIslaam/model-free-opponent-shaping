@@ -1,4 +1,9 @@
-This is a branch containing some tests Labeebah Islaam and Timon Willi did for Universal Shaper
+This is a branch containing some tests Labeebah Islaam and Timon Willi did for Universal Shaper.
+To test trained M-FOS PPO agent on IPD, execute
+```Shell
+python3 src/test_mfos_ppo.py --game=IPD --opponent=NL --exp-name=name
+```
+Where 'name' is the file containing the trained agent
 
 
 ## Model-Free-Opponent Shaping
