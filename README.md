@@ -3,7 +3,11 @@ To test trained M-FOS PPO agent on IPD, execute
 ```Shell
 python3 src/test_mfos_ppo.py --game=IPD --opponent=NL --exp-name=mfos_ppo_uniform_rand_[0,10]_nl
 ```
-Where 'name' is the file containing the trained agent
+Where 'name' is the file containing the trained agent.
+Available games: "IPD", "IMP", "chicken", "random", "randIPD" (randomly generated IPD-like games)
+Opponents: "NL" (naive learner), "LOLA"
+
+The policy of the opponent is also saved within the output file in arrays [state (5 elements), probablity (5 elements)]
 
 
 ## Model-Free-Opponent Shaping
