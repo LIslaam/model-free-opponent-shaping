@@ -10,13 +10,13 @@ def random_ipd_batched(bs, gamma_inner=0.96):
     rand = lambda x,y: round(np.random.uniform(x,y))
     S,P,R,T = 0,0,0,0
     while 2*R <= T+S: # Condition for IPD, alongside T>R>P>S
-        T = rand(-10, 0)
-        R = rand(-20, T-1)
-        P = rand(-30, R-1)
-        S = rand(-40, P-1)
+        T = rand(-2, 0)
+        R = rand(-4, T-1)
+        P = rand(-6, R-1)
+        S = rand(-8, P-1)
  
     payout_mat_1 = torch.Tensor([[R, S], [T, P]]).to(device)
-    print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
+    #print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
     payout_mat_2 = payout_mat_1.T
     payout_mat_1 = payout_mat_1.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
     payout_mat_2 = payout_mat_2.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
@@ -34,15 +34,17 @@ def random_ipd_batched(bs, gamma_inner=0.96):
         L_2 = -torch.matmul(M, torch.reshape(payout_mat_2, (bs, 4, 1)))
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
+    
+    payout = torch.cat([torch.reshape(payout_mat_1, (4096,4)), torch.reshape(payout_mat_2, (4096,4))], axis=1)
 
-    return dims, Ls
+    return dims, Ls, payout
 
 
 def random_batched(bs, gamma_inner=0.96):
     dims = [5, 5]
     rand = lambda x,y: round(np.random.uniform(x,y))
-    payout_mat_1 = torch.Tensor([[rand(0,10), rand(0,10)], 
-                                 [rand(0,10), rand(0,10)]]).to(device)
+    payout_mat_1 = torch.Tensor([[rand(-10,0), rand(-10,0)], 
+                                 [rand(-10,0), rand(-10,0)]]).to(device)
     #print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
     payout_mat_2 = payout_mat_1.T
     payout_mat_1 = payout_mat_1.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
@@ -62,7 +64,9 @@ def random_batched(bs, gamma_inner=0.96):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
-    return dims, Ls
+    payout = torch.cat([torch.reshape(payout_mat_1, (4096,4)), torch.reshape(payout_mat_2, (4096,4))], axis=1)
+
+    return dims, Ls, payout # Need a try, except when calling environments
 
 
 def ipd_batched(bs, gamma_inner=0.96):
@@ -86,7 +90,9 @@ def ipd_batched(bs, gamma_inner=0.96):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
-    return dims, Ls
+    payout = torch.cat([torch.reshape(payout_mat_1, (4096,4)), torch.reshape(payout_mat_2, (4096,4))], axis=1)
+
+    return dims, Ls, payout
 
 
 def imp_batched(bs, gamma_inner=0.96):
@@ -207,7 +213,7 @@ def generate_mamaml(b, d, inner_env, game, inner_lr=1):
 
 
 class MetaGames:
-    def __init__(self, b, opponent="NL", game="IPD", mmapg_id=0):
+    def __init__(self, b, opponent="NL", game="IPD", mmapg_id=0, payout=None):
         """
         Opponent can be:
         NL = Naive Learner (gradient updates through environment).
@@ -219,10 +225,8 @@ class MetaGames:
         self.b = b
 
         self.game = game
-        if self.game == "IPD" or self.game == 'inputIPD':
-            d, self.game_batched = ipd_batched(b, gamma_inner=self.gamma_inner)
-            #if self.game == 'inputIPD':
-             #   d = [7,7]
+        if self.game == "IPD":
+            d, self.game_batched, self.payout = ipd_batched(b, gamma_inner=self.gamma_inner)
             self.std = 1
             self.lr = 1
         elif self.game == "IMP":
@@ -234,11 +238,11 @@ class MetaGames:
             self.std = 1
             self.lr = 1
         elif self.game == "random":
-            d, self.game_batched = random_batched(b)
+            d, self.game_batched, self.payout = random_batched(b)
             self.std = 1
             self.lr = 1
         elif self.game == "randIPD":
-            d, self.game_batched = random_ipd_batched(b)
+            d, self.game_batched, self.payout = random_ipd_batched(b)
             self.std = 1
             self.lr = 1
         else:
@@ -255,9 +259,9 @@ class MetaGames:
 
     def reset(self, info=False):
         if self.game == 'random':
-            d, self.game_batched = random_batched(self.b) # I added this to reset random matrix
+            d, self.game_batched, self.payout = random_batched(self.b) # I added this to reset random matrix
         if self.game == 'randIPD':
-            d, self.game_batched = random_ipd_batched(self.b) # I added this to reset random matrix
+            d, self.game_batched, self.payout = random_ipd_batched(self.b) # I added this to reset random matrix
         if self.init_th_ba is not None:
             self.inner_th_ba = self.init_th_ba.detach() * torch.ones((self.b, self.d), requires_grad=True).to(device)
         else:
@@ -265,12 +269,16 @@ class MetaGames:
         outer_th_ba = torch.nn.init.normal_(torch.empty((self.b, self.d), requires_grad=True), std=self.std).to(device)
         state, _, _, M = self.step(outer_th_ba)
 
-        if self.game == 'inputIPD':
-            state = torch.cat([state, torch.Tensor([[-1, -3, 0, -2]]).to(device).repeat(4096,1)], axis=-1)
         if info:
-            return state, M
+            try:
+                return state, M, self.payout
+            except ValueError:
+                return state, M
         else:
-            return state
+            try:
+                return state, self.payout
+            except ValueError:
+                return state
 
     def step(self, outer_th_ba):
         last_inner_th_ba = self.inner_th_ba.detach().clone()
@@ -306,7 +314,7 @@ class MetaGames:
         else:
             raise NotImplementedError
 
-        if self.game == "IPD" or self.game == "IMP" or self.game=='inputIPD':
+        if self.game == "IPD" or self.game == "IMP":
             return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), (-l2 * (1 - self.gamma_inner)).detach(), (-l1 * (1 - self.gamma_inner)).detach(), M
         else:
             return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), -l2.detach(), -l1.detach(), M
@@ -320,8 +328,6 @@ class SymmetricMetaGames:
         self.game = game
         if self.game == "IPD" or self.game == 'inputIPD':
             d, self.game_batched = ipd_batched(b, gamma_inner=self.gamma_inner)
-            if self.game == 'inputIPD':
-                d = [7,7]
             self.std = 1
         elif self.game == "IMP":
             d, self.game_batched = imp_batched(b, gamma_inner=self.gamma_inner)
@@ -346,11 +352,11 @@ class SymmetricMetaGames:
         state_0 = torch.sigmoid(torch.cat((p_ba_0.detach(), p_ba_1.detach()), dim=-1))
         state_1 = torch.sigmoid(torch.cat((p_ba_1.detach(), p_ba_0.detach()), dim=-1))
 
-        if self.game == 'inputIPD':
-            state_0 = torch.cat(torch.sigmoid(torch.cat((p_ba_0.detach(), p_ba_1.detach()), dim=-1)),
-                                torch.Tensor([[-1, -3], [0, -2]]).to(device), axis=-1)
-            state_1 = torch.cat(torch.sigmoid(torch.cat((p_ba_1.detach(), p_ba_0.detach()), dim=-1)),
-                                torch.Tensor([[-1, -3], [0, -2]]).to(device), axis=-1)           
+        #if self.game == 'inputIPD':
+         #   state_0 = torch.cat(torch.sigmoid(torch.cat((p_ba_0.detach(), p_ba_1.detach()), dim=-1)),
+          #                      torch.Tensor([[-1, -3], [0, -2]]).to(device), axis=-1)
+           # state_1 = torch.cat(torch.sigmoid(torch.cat((p_ba_1.detach(), p_ba_0.detach()), dim=-1)),
+            #                    torch.Tensor([[-1, -3], [0, -2]]).to(device), axis=-1)           
 
         if info:
             state, _, M = self.step(p_ba_0, p_ba_1)
@@ -392,8 +398,6 @@ class NonMfosMetaGames:
         self.game = game
         if self.game == "IPD" or self.game == 'inputIPD':
             d, self.game_batched = ipd_batched(b, gamma_inner=self.gamma_inner)
-            if self.game == 'inputIPD':
-                d = [7,7]
             self.std = 1
             self.lr = 1
         elif self.game == "IMP":
@@ -438,9 +442,8 @@ class NonMfosMetaGames:
             self.p2_th_ba = self.init_th_ba.detach() * torch.ones((self.b, self.d), requires_grad=True).to(device)
 
         state, _, _, M = self.step()
-        if self.game == 'inputIPD':
-            state = torch.cat([state, torch.Tensor([[-1, -3, 0, -2]]).to(device).repeat(4096,1)])
-
+        #if self.game == 'inputIPD':
+         #   state = torch.cat([state, torch.Tensor([[-1, -3, 0, -2, -1, 0, -3, -2]]).to(device).repeat(4096,1)], axis=-1)
         if info:
             return state, M
 
