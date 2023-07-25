@@ -6,6 +6,7 @@ python3 src/test_mfos_ppo.py --game=IPD --opponent=NL --exp-name=mfos_ppo_unifor
 Where 'name' is the file containing the trained agent.
 Available games: "IPD", "IMP", "chicken", "random", "randIPD" (randomly generated IPD-like games)
 Opponents: "NL" (naive learner), "LOLA"
+Optionally include --seed (works on IPD, IMP and chicken only), and --append_input (appends payout matrix to state)
 
 The policy of the opponent is also saved within the output file in arrays [state (5 elements), probablity (5 elements)]
 
