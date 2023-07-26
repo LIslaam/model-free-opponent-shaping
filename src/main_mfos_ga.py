@@ -9,8 +9,11 @@ import json
 parser = argparse.ArgumentParser()
 parser.add_argument("--game", type=str, required=True)
 parser.add_argument("--opponent", type=str, required=True)
+parser.add_argument("--entropy", type=float, default=0.01)
 parser.add_argument("--exp-name", type=str, default="")
 parser.add_argument("--mamaml-id", type=int, default=0)
+parser.add_argument("--seed", type=int, default=None)
+parser.add_argument("--append_input", type=bool, default=False)
 args = parser.parse_args()
 
 
@@ -26,22 +29,26 @@ if __name__ == "__main__":
     save_freq = 16
     name = args.exp_name
 
-    print(f"RUNNING NAME: {name}")
-    if not os.path.isdir(name):
-        os.mkdir(name)
-        with open(os.path.join(name, "commandline_args.txt"), "w") as f:
+    print(f"RUNNING NAME: {'runs/' + name}")
+    if not os.path.isdir('runs/' + name):
+        os.mkdir('runs/' + name)
+        with open(os.path.join('runs/' + name, "commandline_args.txt"), "w") as f:
             json.dump(args.__dict__, f, indent=2)
 
     #############################################
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+    if args.seed != None:
+        torch.manual_seed(random_seed) # Set seed for reproducability.
     # creating environment
     env = MetaGames(num_species * batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id)
-    env_test = MetaGames(test_size, opponent=args.opponent, game=args.game, mmapg_id=args.id)
+    env_test = MetaGames(test_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id)
 
     action_dim = env.d
-    state_dim = env.d * 2
+    state_dim = (env.d * 2)
+    if args.append_input:
+        state_dim = (env.d * 2) + 8
 
     agent = BatchedPolicies(state_dim, action_dim, num_species, device=device)
 
@@ -51,11 +58,21 @@ if __name__ == "__main__":
         rewards_nb = torch.zeros((num_species, batch_size), device=device)
         opp_rewards_nb = torch.zeros((num_species, batch_size), device=device)
 
-        state = env.reset().view(num_species, batch_size, state_dim)
+        try:
+            state, payout = env.reset()
+            if args.append_input:
+                state = torch.cat([state, payout], axis=-1)
+            state = state.view(num_species, batch_size, state_dim)
+        except ValueError:
+            state = env.reset().view(num_species, batch_size, state_dim)
+
         for n in range(num_steps):
             with torch.no_grad():
                 action = agent(state).reshape(num_species * batch_size, action_dim)
+
             state, reward, info, M = env.step(action)
+            if args.append_input:
+                state = torch.cat([state, payout], axis=-1)
             state = state.view(num_species, batch_size, state_dim)
             rewards_nb += reward.view(num_species, batch_size)
             opp_rewards_nb += info.view(num_species, batch_size)
@@ -66,11 +83,20 @@ if __name__ == "__main__":
         best = torch.argmax(rewards_n)
         running_reward = torch.zeros(test_size).cuda()
         running_opp_reward = torch.zeros(test_size).cuda()
-        state = env_test.reset()
+
+        try:
+            state, payout = env_test.reset()
+        except ValueError:
+            state = env_test.reset()
+
         for n in range(num_steps):
             with torch.no_grad():
+                if args.append_input:
+                    state = torch.cat([state, payout.to(device)], axis=-1)
                 action = agent.forward_eval(state, idx=best)
+
             state, reward, info, M = env_test.step(action)
+
             running_reward += reward.squeeze(-1)
             running_opp_reward += info.squeeze(-1)
         new_reward = running_reward.mean()
@@ -78,10 +104,18 @@ if __name__ == "__main__":
 
         running_reward = torch.zeros(test_size).cuda()
         running_opp_reward = torch.zeros(test_size).cuda()
-        state = env_test.reset()
+
+        try:
+            state, payout = env_test.reset()
+        except ValueError:
+            state = env_test.reset()
+
         for n in range(num_steps):
             with torch.no_grad():
+                if args.append_input:
+                    state = torch.cat([state, payout.to(device)], axis=-1)
                 action = agent.forward_eval(state, idx=None)
+
             state, reward, info, M = env_test.step(action)
             running_reward += reward.squeeze(-1)
             running_opp_reward += info.squeeze(-1)
@@ -120,12 +154,12 @@ if __name__ == "__main__":
         print(f"Old Opp Reward: {old_opp_reward / num_steps}")
 
         if i % save_freq == 0:
-            torch.save(agent.state_dict(), os.path.join(name, f"{i}.pth"))
-            with open(os.path.join(name, f"out_{i}.json"), "w") as f:
+            torch.save(agent.state_dict(), os.path.join('runs/' + name, f"{i}.pth"))
+            with open(os.path.join('runs/' + name, f"out_{i}.json"), "w") as f:
                 json.dump(rew_means, f)
             print(f"SAVING! {i}")
 
-    torch.save(agent.state_dict(), os.path.join(name, f"{i}.pth"))
-    with open(os.path.join(name, f"out_{i}.json"), "w") as f:
+    torch.save(agent.state_dict(), os.path.join('runs/' + name, f"{i}.pth"))
+    with open(os.path.join('runs/' + name, f"out_{i}.json"), "w") as f:
         json.dump(rew_means, f)
     print(f"SAVING! {i}")
