@@ -4,7 +4,7 @@ import os.path as osp
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def random_ipd_batched(bs, gamma_inner=0.96):
+def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     # https://en.wikipedia.org/wiki/Prisoner%27s_dilemma#Generalized_form
     dims = [5, 5]
     rand = lambda x,y: round(np.random.uniform(x,y))
@@ -35,12 +35,13 @@ def random_ipd_batched(bs, gamma_inner=0.96):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
     
-    payout = torch.cat([torch.reshape(payout_mat_1, (4096,4)), torch.reshape(payout_mat_2, (4096,4))], axis=1)
+    payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
+                        torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
 
     return dims, Ls, payout
 
 
-def random_batched(bs, gamma_inner=0.96):
+def random_batched(bs, gamma_inner=0.96, batch_size=4096):
     dims = [5, 5]
     rand = lambda x,y: round(np.random.uniform(x,y))
     payout_mat_1 = torch.Tensor([[rand(-10,0), rand(-10,0)], 
@@ -64,12 +65,13 @@ def random_batched(bs, gamma_inner=0.96):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
-    payout = torch.cat([torch.reshape(payout_mat_1, (4096,4)), torch.reshape(payout_mat_2, (4096,4))], axis=1)
+    payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
+                        torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
 
     return dims, Ls, payout # Need a try, except when calling environments
 
 
-def ipd_batched(bs, gamma_inner=0.96):
+def ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     dims = [5, 5]
     payout_mat_1 = torch.Tensor([[-1, -3], [0, -2]]).to(device)
     payout_mat_2 = payout_mat_1.T
@@ -90,7 +92,7 @@ def ipd_batched(bs, gamma_inner=0.96):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
-    payout = torch.cat([torch.reshape(payout_mat_1, (4096,4)), torch.reshape(payout_mat_2, (4096,4))], axis=1)
+    payout = torch.flatten(payout_mat_1[0]).repeat((batch_size,2))
 
     return dims, Ls, payout
 
@@ -226,7 +228,8 @@ class MetaGames:
 
         self.game = game
         if self.game == "IPD":
-            d, self.game_batched, self.payout = ipd_batched(b, gamma_inner=self.gamma_inner)
+            d, self.game_batched, self.payout = ipd_batched(b, gamma_inner=self.gamma_inner,
+                                                             batch_size=self.b)
             self.std = 1
             self.lr = 1
         elif self.game == "IMP":
@@ -238,11 +241,11 @@ class MetaGames:
             self.std = 1
             self.lr = 1
         elif self.game == "random":
-            d, self.game_batched, self.payout = random_batched(b)
+            d, self.game_batched, self.payout = random_batched(b, batch_size=self.b)
             self.std = 1
             self.lr = 1
         elif self.game == "randIPD":
-            d, self.game_batched, self.payout = random_ipd_batched(b)
+            d, self.game_batched, self.payout = random_ipd_batched(b, batch_size=self.b)
             self.std = 1
             self.lr = 1
         else:
@@ -259,9 +262,9 @@ class MetaGames:
 
     def reset(self, info=False):
         if self.game == 'random':
-            d, self.game_batched, self.payout = random_batched(self.b) # I added this to reset random matrix
+            d, self.game_batched, self.payout = random_batched(self.b, batch_size=self.b) # I added this to reset random matrix
         if self.game == 'randIPD':
-            d, self.game_batched, self.payout = random_ipd_batched(self.b) # I added this to reset random matrix
+            d, self.game_batched, self.payout = random_ipd_batched(self.b, batch_size=self.b) # I added this to reset random matrix
         if self.init_th_ba is not None:
             self.inner_th_ba = self.init_th_ba.detach() * torch.ones((self.b, self.d), requires_grad=True).to(device)
         else:
@@ -351,12 +354,6 @@ class SymmetricMetaGames:
         p_ba_1 = torch.nn.init.normal_(torch.empty((self.b, self.d)), std=self.std).to(device)
         state_0 = torch.sigmoid(torch.cat((p_ba_0.detach(), p_ba_1.detach()), dim=-1))
         state_1 = torch.sigmoid(torch.cat((p_ba_1.detach(), p_ba_0.detach()), dim=-1))
-
-        #if self.game == 'inputIPD':
-         #   state_0 = torch.cat(torch.sigmoid(torch.cat((p_ba_0.detach(), p_ba_1.detach()), dim=-1)),
-          #                      torch.Tensor([[-1, -3], [0, -2]]).to(device), axis=-1)
-           # state_1 = torch.cat(torch.sigmoid(torch.cat((p_ba_1.detach(), p_ba_0.detach()), dim=-1)),
-            #                    torch.Tensor([[-1, -3], [0, -2]]).to(device), axis=-1)           
 
         if info:
             state, _, M = self.step(p_ba_0, p_ba_1)
