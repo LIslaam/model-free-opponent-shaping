@@ -72,3 +72,10 @@ class BatchedPolicies(nn.Module):
             x += self.fb2_na[idx].unsqueeze(0)
 
         return x
+
+    def load(self, filename):
+        checkpoint = torch.load(filename)
+        self.l_1(checkpoint["l_1"])
+        self.b_1(checkpoint["b_1"])
+        self.l_2(checkpoint["l_2"])
+        self.b_2(checkpoint["b_2"])
