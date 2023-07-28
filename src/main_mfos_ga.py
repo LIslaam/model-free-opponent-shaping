@@ -26,10 +26,10 @@ if __name__ == "__main__":
     save_freq = 16
     name = args.exp_name
 
-    print(f"RUNNING NAME: {name}")
-    if not os.path.isdir(name):
-        os.mkdir(name)
-        with open(os.path.join(name, "commandline_args.txt"), "w") as f:
+    print(f"RUNNING NAME: {'runs/' + name}")
+    if not os.path.isdir('runs/' + name):
+        os.mkdir('runs/' + name)
+        with open(os.path.join('runs/' + name, "commandline_args.txt"), "w") as f:
             json.dump(args.__dict__, f, indent=2)
 
     #############################################
@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     # creating environment
     env = MetaGames(num_species * batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id)
-    env_test = MetaGames(test_size, opponent=args.opponent, game=args.game, mmapg_id=args.id)
+    env_test = MetaGames(test_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id)
 
     action_dim = env.d
     state_dim = env.d * 2
@@ -120,12 +120,12 @@ if __name__ == "__main__":
         print(f"Old Opp Reward: {old_opp_reward / num_steps}")
 
         if i % save_freq == 0:
-            torch.save(agent.state_dict(), os.path.join(name, f"{i}.pth"))
-            with open(os.path.join(name, f"out_{i}.json"), "w") as f:
+            torch.save(agent.state_dict(), os.path.join('runs/' + name, f"{i}.pth"))
+            with open(os.path.join('runs/' + name, f"out_{i}.json"), "w") as f:
                 json.dump(rew_means, f)
             print(f"SAVING! {i}")
 
-    torch.save(agent.state_dict(), os.path.join(name, f"{i}.pth"))
-    with open(os.path.join(name, f"out_{i}.json"), "w") as f:
+    torch.save(agent.state_dict(), os.path.join('runs/' + name, f"{i}.pth"))
+    with open(os.path.join('runs/' + name, f"out_{i}.json"), "w") as f:
         json.dump(rew_means, f)
     print(f"SAVING! {i}")

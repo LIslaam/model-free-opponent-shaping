@@ -1,0 +1,8 @@
+{
+  "game": "IPD",
+  "opponent": "NL",
+  "entropy": 0.01,
+  "exp_name": "mfos_ppo_large_uniform_rand_[0,10]_nl",
+  "checkpoint": "",
+  "mamaml_id": 0
+}

@@ -1,0 +1,8 @@
+{
+  "game": "IPD",
+  "opponent": "NL",
+  "entropy": 0.01,
+  "exp_name": "runs/test",
+  "checkpoint": "",
+  "mamaml_id": 0
+}

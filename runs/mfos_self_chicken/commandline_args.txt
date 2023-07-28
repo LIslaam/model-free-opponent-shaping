@@ -1,0 +1,6 @@
+{
+  "game": "chicken",
+  "entropy": 0.01,
+  "exp_name": "runs/mfos_self_chicken",
+  "checkpoint": ""
+}

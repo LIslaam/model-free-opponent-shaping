@@ -26,7 +26,7 @@ if __name__ == "__main__":
     lr = 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 1024
+    max_episodes = 32768
     batch_size = 4096
     random_seed = None
     num_steps = 100
@@ -34,10 +34,10 @@ if __name__ == "__main__":
     save_freq = 250
     name = args.exp_name
 
-    print(f"RUNNING NAME: {name}")
-    if not os.path.isdir(name):
-        os.mkdir(name)
-        with open(os.path.join(name, "commandline_args.txt"), "w") as f:
+    print(f"RUNNING NAME: {'runs/' + name}")
+    if not os.path.isdir('runs/' + name):
+        os.mkdir('runs/' + name)
+        with open(os.path.join('runs/' + name, "commandline_args.txt"), "w") as f:
             json.dump(args.__dict__, f, indent=2)
 
     #############################################
@@ -102,12 +102,12 @@ if __name__ == "__main__":
         print(f"opponent loss: {-running_opp_reward.mean() / num_steps}", flush=True)
 
         if i_episode % save_freq == 0:
-            ppo.save(os.path.join(name, f"{i_episode}.pth"))
-            with open(os.path.join(name, f"out_{i_episode}.json"), "w") as f:
+            ppo.save(os.path.join('runs/' + name, f"{i_episode}.pth"))
+            with open(os.path.join('runs/' + name, f"out_{i_episode}.json"), "w") as f:
                 json.dump(rew_means, f)
             print(f"SAVING! {i_episode}")
 
-    ppo.save(os.path.join(name, f"{i_episode}.pth"))
-    with open(os.path.join(name, f"out_{i_episode}.json"), "w") as f:
+    ppo.save(os.path.join('runs/' + name, f"{i_episode}.pth"))
+    with open(os.path.join('runs/' + name, f"out_{i_episode}.json"), "w") as f:
         json.dump(rew_means, f)
     print(f"SAVING! {i_episode}")
