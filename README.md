@@ -1,5 +1,7 @@
 This is a branch containing some tests Labeebah Islaam and Timon Willi did for Universal Shaper.
 To test trained M-FOS PPO agent on IPD, execute
+
+YO FAM WALLAHI
 ```Shell
 python3 src/test_mfos_ppo.py --game=IPD --opponent=NL --exp-name=mfos_ppo_uniform_rand_[0,10]_nl
 ```
