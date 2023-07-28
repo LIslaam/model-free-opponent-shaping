@@ -1,6 +1,0 @@
-{
-  "game": "IPD",
-  "entropy": 0.01,
-  "exp_name": "runs/mfos_self_ipd",
-  "checkpoint": ""
-}

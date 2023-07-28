@@ -1,8 +1,0 @@
-{
-  "game": "IPD",
-  "opponent": "LOLA",
-  "entropy": 0.01,
-  "exp_name": "runs/mfos_ppo_ipd_lola",
-  "checkpoint": "",
-  "mamaml_id": 0
-}

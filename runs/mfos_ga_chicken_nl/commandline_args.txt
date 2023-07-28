@@ -1,6 +1,0 @@
-{
-  "game": "chicken",
-  "opponent": "NL",
-  "exp_name": "runs/mfos_ga_chicken_nl",
-  "mamaml_id": 0
-}

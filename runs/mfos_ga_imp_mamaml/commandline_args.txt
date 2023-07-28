@@ -1,6 +1,0 @@
-{
-  "game": "IMP",
-  "opponent": "MAMAML",
-  "exp_name": "runs/mfos_ga_imp_mamaml",
-  "mamaml_id": 0
-}

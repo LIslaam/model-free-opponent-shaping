@@ -1,6 +1,0 @@
-{
-  "game": "random",
-  "opponent": "NL",
-  "exp_name": "mfos_ga_run2_uniform_rand_[0,10]_nl",
-  "mamaml_id": 0
-}

@@ -1,6 +1,7 @@
 import torch
 from ga import BatchedPolicies
 from environments import MetaGames
+from ga import Auxiliary
 import os
 import argparse
 import json
@@ -20,9 +21,9 @@ args = parser.parse_args()
 if __name__ == "__main__":
     ############################################
     lr = 0.5
-    num_species = 4096
-    max_episodes = 128
-    test_size = 4096
+    num_species = 2048
+    max_episodes = 64
+    test_size = 2048
     batch_size = 128
     random_seed = None
     num_steps = 100
@@ -48,9 +49,11 @@ if __name__ == "__main__":
     action_dim = env.d
     state_dim = (env.d * 2)
     if args.append_input:
-        state_dim = (env.d * 2) + 8
+        state_dim = (env.d * 2) + 2 # 2 outputs from Auxiliary NN
 
-    agent = BatchedPolicies(state_dim, action_dim, num_species, device=device)
+    _, payout = env.reset()
+    agent = BatchedPolicies(state_dim, action_dim, num_species, payout=payout, device=device)
+    aux = Auxiliary().to(device) # Use this to initialise state before using GA
 
     rew_means = []
     for i in range(1, max_episodes + 1):
@@ -60,19 +63,23 @@ if __name__ == "__main__":
 
         try:
             state, payout = env.reset()
+            payout_probs = torch.Tensor.repeat(aux(payout), (num_species*batch_size,1))
             if args.append_input:
-                state = torch.cat([state, payout], axis=-1)
+                state = torch.cat([state, payout_probs], axis=-1)
             state = state.view(num_species, batch_size, state_dim)
         except ValueError:
             state = env.reset().view(num_species, batch_size, state_dim)
 
+        print(state.size())
         for n in range(num_steps):
             with torch.no_grad():
-                action = agent(state).reshape(num_species * batch_size, action_dim)
+                action, payout_probs = agent(state, payout=payout)
+                payout_probs = torch.Tensor.repeat(payout_probs, (num_species*batch_size,1))
+                action = action.reshape(num_species * batch_size, action_dim)
 
             state, reward, info, M = env.step(action)
             if args.append_input:
-                state = torch.cat([state, payout], axis=-1)
+                state = torch.cat([state, payout_probs], axis=-1)
             state = state.view(num_species, batch_size, state_dim)
             rewards_nb += reward.view(num_species, batch_size)
             opp_rewards_nb += info.view(num_species, batch_size)
@@ -86,14 +93,14 @@ if __name__ == "__main__":
 
         try:
             state, payout = env_test.reset()
+            payout_probs = aux(payout)
         except ValueError:
             state = env_test.reset()
 
         for n in range(num_steps):
             with torch.no_grad():
-                if args.append_input:
-                    state = torch.cat([state, payout.to(device)], axis=-1)
-                action = agent.forward_eval(state, idx=best)
+
+                action = agent.forward_eval(state, payout, idx=best)
 
             state, reward, info, M = env_test.step(action)
 
@@ -107,14 +114,15 @@ if __name__ == "__main__":
 
         try:
             state, payout = env_test.reset()
+            payout_probs = aux(payout)
         except ValueError:
             state = env_test.reset()
 
         for n in range(num_steps):
             with torch.no_grad():
                 if args.append_input:
-                    state = torch.cat([state, payout.to(device)], axis=-1)
-                action = agent.forward_eval(state, idx=None)
+                    state = torch.cat([state, payout_probs.to(device)], axis=-1)
+                action = agent.forward_eval(state, payout, idx=None)
 
             state, reward, info, M = env_test.step(action)
             running_reward += reward.squeeze(-1)

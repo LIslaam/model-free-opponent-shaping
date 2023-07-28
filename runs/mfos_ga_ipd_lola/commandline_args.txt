@@ -1,6 +1,0 @@
-{
-  "game": "IPD",
-  "opponent": "LOLA",
-  "exp_name": "runs/mfos_ga_ipd_lola",
-  "mamaml_id": 0
-}

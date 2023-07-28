@@ -11,6 +11,7 @@ parser.add_argument("--game", type=str, required=True)
 parser.add_argument("--opponent", type=str, required=True)
 parser.add_argument("--entropy", type=float, default=0.01)
 parser.add_argument("--exp-name", type=str, default="")
+parser.add_argument("--checkpoint", type=str, default="")
 parser.add_argument("--mamaml-id", type=int, default=0)
 parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
@@ -20,20 +21,27 @@ args = parser.parse_args()
 if __name__ == "__main__":
     ############################################
     lr = 0.5
-    num_species = 4096
-    max_episodes = 128
-    test_size = 4096
+    num_species = 2048
+    max_episodes = 64
+    test_size = 2048
     batch_size = 128
-    random_seed = None
+    random_seed = args.seed
     num_steps = 100
     save_freq = 16
     name = args.exp_name
 
-    print(f"RUNNING NAME: {'runs/' + name}")
-    if not os.path.isdir('runs/' + name):
-        os.mkdir('runs/' + name)
-        with open(os.path.join('runs/' + name, "commandline_args.txt"), "w") as f:
+    print(f"RUNNING NAME: {'runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed)}")
+    if not os.path.isdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed)):
+        os.mkdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed))
+        with open(os.path.join('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed), 
+                               "commandline_args.txt"), "w") as f:
             json.dump(args.__dict__, f, indent=2)
+
+  #  if not os.path.isdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed) + '_policy'):
+   #     os.mkdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed) + '_policy')
+    #    with open(os.path.join('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed) + '_policy', 
+     #                          "commandline_args.txt"), "w") as f:
+      #      json.dump(args.__dict__, f, indent=2)
 
     #############################################
 
@@ -51,6 +59,12 @@ if __name__ == "__main__":
         state_dim = (env.d * 2) + 8
 
     agent = BatchedPolicies(state_dim, action_dim, num_species, device=device)
+
+    directory = "runs/" + name + '/'
+    checkpoint_path = directory + "{}.pth".format(max_episodes) # max episodes
+    print("loading network from : " + checkpoint_path)
+
+    agent.load_state_dict(torch.load(checkpoint_path))
 
     rew_means = []
     for i in range(1, max_episodes + 1):
@@ -124,7 +138,7 @@ if __name__ == "__main__":
         print("=" * 10)
         with torch.no_grad():
 
-            if new_reward > old_reward:
+            '''if new_reward > old_reward:
                 print("REPLACING!")
                 agent.l_1 = torch.nn.Parameter(agent.fl1_nsd[best])
                 agent.b_1 = torch.nn.Parameter(agent.fb1_nd[best])
@@ -137,15 +151,15 @@ if __name__ == "__main__":
                         "opp_rew": (new_opp_reward / num_steps).item(),
                     }
                 )
-            else:
-                print("NO BETTER FOUND!")
-                rew_means.append(
-                    {
-                        "new_best": False,
-                        "rew": (old_reward / num_steps).item(),
-                        "opp_rew": (old_opp_reward / num_steps).item(),
-                    }
-                )
+            else:'''
+            print("NO BETTER FOUND!")
+            rew_means.append(
+                {
+                    "new_best": False,
+                    "rew": (old_reward / num_steps).item(),
+                    "opp_rew": (old_opp_reward / num_steps).item(),
+                }
+            )
 
         print(f"New Reward: {new_reward / num_steps}")
         print(f"New Opp Reward: {new_opp_reward / num_steps}")
@@ -153,14 +167,15 @@ if __name__ == "__main__":
         print(f"Old Reward: {old_reward / num_steps}")
         print(f"Old Opp Reward: {old_opp_reward / num_steps}")
 
-        #print(agent.state_dict())
         if i % save_freq == 0:
-            torch.save(agent.state_dict(), os.path.join('runs/' + name, f"{i}.pth"))
-            with open(os.path.join('runs/' + name, f"out_{i}.json"), "w") as f:
+            with open(os.path.join('runs/' + name + '/test_' + args.game + '_seed' + str(args.seed), f"out_{i}.json"), "w") as f:
                 json.dump(rew_means, f)
+            #with open(os.path.join('runs/' + name + '/policy', f"out_{i}.json"), "w") as f:
+             #   json.dump(policy, f)
             print(f"SAVING! {i}")
 
-    torch.save(agent.state_dict(), os.path.join('runs/' + name, f"{i}.pth"))
-    with open(os.path.join('runs/' + name, f"out_{i}.json"), "w") as f:
+    with open(os.path.join('runs/' + name + '/test_' + args.game + '_seed' + str(args.seed), f"out_{i}.json"), "w") as f:
         json.dump(rew_means, f)
+    #with open(os.path.join('runs/' + name + '/policy', f"out_{i}.json"), "w") as f:
+     #   json.dump(policy, f)
     print(f"SAVING! {i}")

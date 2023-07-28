@@ -1,8 +1,0 @@
-{
-  "game": "chicken",
-  "opponent": "LOLA",
-  "entropy": 0.01,
-  "exp_name": "runs/mfos_ppo_chicken_lola",
-  "checkpoint": "",
-  "mamaml_id": 0
-}
