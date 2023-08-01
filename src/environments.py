@@ -101,7 +101,7 @@ def ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     #payout = torch.flatten(payout_mat_1[0]).repeat((batch_size,2))
     #payout = torch.sigmoid(payout)
 
-    payout = torch.reshape(torch.stack((payout_mat_1, payout_mat_2)), (1,2,4))
+    payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
 
     return dims, Ls, payout
 

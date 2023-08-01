@@ -1,6 +1,7 @@
 import torch
 from ppo import PPO, Memory
 from environments import MetaGames
+from ga import Auxiliary
 import os
 import argparse
 import json
@@ -37,6 +38,8 @@ if __name__ == "__main__":
     save_freq = 250
     name = args.exp_name
 
+    aux = Auxiliary().to(device)
+
     print(f"RUNNING NAME: {'runs/' + name}")
     if not os.path.isdir('runs/' + name):
         os.mkdir('runs/' + name)
@@ -57,7 +60,7 @@ if __name__ == "__main__":
     action_dim = env.d
     state_dim = (env.d * 2)
     if args.append_input:
-        state_dim = (env.d * 2) + 8
+        state_dim = (env.d * 2) + 2 # Changed way state is input
 
 
     memory = Memory()
@@ -79,6 +82,7 @@ if __name__ == "__main__":
     for i_episode in range(1, max_episodes + 1):
         try:
             state, payout = env.reset()
+            payout_probs = torch.Tensor.repeat(aux(payout.to(device)), (batch_size,1))
         except ValueError:
             state = env.reset()
 
@@ -90,7 +94,7 @@ if __name__ == "__main__":
 
         for t in range(num_steps):
             if args.append_input:
-                state = torch.cat([state, payout.to(device)], axis=-1)
+                state = torch.cat([state, payout_probs], axis=-1)
             # Running policy_old:
             action = ppo.policy_old.act(state, memory)
             state, reward, info, M = env.step(action)
