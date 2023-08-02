@@ -1,4 +1,5 @@
 runs/*
+model-free-opponent-shaping.code-workspace
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
