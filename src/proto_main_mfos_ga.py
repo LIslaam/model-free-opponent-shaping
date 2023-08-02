@@ -6,7 +6,9 @@ import os
 import argparse
 import json
 
-
+#############
+# THIS FILE IS WITH INPUT PASSED THROUGH NN
+#############
 parser = argparse.ArgumentParser()
 parser.add_argument("--game", type=str, required=True)
 parser.add_argument("--opponent", type=str, required=True)
