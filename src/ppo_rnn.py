@@ -151,8 +151,8 @@ class PPORecurrent:
         self.policy = ActorCriticRecurrent(state_dim, action_dim, batch_size, hidden_size).to(device)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr, betas=betas)
 
-        # self.policy_old = ActorCriticRecurrent(state_dim, action_dim, batch_size, hidden_size).to(device)
-        # self.policy_old.load_state_dict(self.policy.state_dict())
+        self.policy_old = ActorCriticRecurrent(state_dim, action_dim, batch_size, hidden_size).to(device)
+        self.policy_old.load_state_dict(self.policy.state_dict())
         
         self.MseLoss = nn.MSELoss()
         self.entropy_bonus = entropy
@@ -165,6 +165,7 @@ class PPORecurrent:
         self.policy.eval()
 
     def update(self, memory):
+        #wandb.init() # NOT FOR LABEEBAH
         # Monte Carlo estimate of rewards:
         rewards = []
         discounted_reward = 0
@@ -217,6 +218,7 @@ class PPORecurrent:
             self.optimizer.zero_grad()
             loss.mean().backward()
             self.optimizer.step()
+            ''' NOT FOR LABEEBAH
         wandb.log({
             'total_loss': loss.mean(), 
             'advantages': advantages.mean(), 
@@ -224,9 +226,10 @@ class PPORecurrent:
             'surr2': surr2.mean(),
             'std': self.policy.std.item(),
             'entropy_loss': entropy_loss})
+        '''
         # print('STD: ', self.policy.std)
         # Copy new weights into old policy:
-        # self.policy_old.load_state_dict(self.policy.state_dict())
+        self.policy_old.load_state_dict(self.policy.state_dict())
 
     def save(self, filename):
         torch.save({
@@ -237,6 +240,6 @@ class PPORecurrent:
     def load(self, filename):
         checkpoint = torch.load(filename)
         self.policy.load_state_dict(checkpoint['actor_critic'])
-        # self.policy_old.load_state_dict(checkpoint['actor_critic'])
+        self.policy_old.load_state_dict(checkpoint['actor_critic'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
         
