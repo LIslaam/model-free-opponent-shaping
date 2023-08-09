@@ -1,18 +1,18 @@
 This is a branch containing some tests Labeebah Islaam and Timon Willi did for Universal Shaper.
 To test trained M-FOS PPO agent on IPD, execute
-<<<<<<< HEAD
 
 =======
->>>>>>> d439cf083ab0e9c3330a0ebbd80f6e893d5c98de
 ```Shell
 python3 src/test_mfos_ppo.py --game=IPD --opponent=NL --exp-name=mfos_ppo_uniform_rand_[0,10]_nl
 ```
 Where 'name' is the file containing the trained agent.
-Available games: "IPD", "IMP", "chicken", "random", "randIPD" (randomly generated IPD-like games)
+Available games: "IPD", "IMP", "chicken", "random", "randIPD" (randomly generated IPD-like games), "extremeIPD"
 Opponents: "NL" (naive learner), "LOLA"
 Optionally include --seed (works on IPD, IMP and chicken only), and --append_input (appends payout matrix to state)
 
-The policy of the opponent is also saved within the output file in arrays [state (5 elements), probablity (5 elements)]
+NOTE: --append_input is set up to an auxilliary input in PPO (payout matrix passed into NN). --append_input doesn't work in GA. In RNN, it appends M-FOS' reward to the state.
+
+The conditional state probability of the opponent is also saved within the output file in arrays [state (5 elements), probablity (5 elements)]
 
 
 ## Model-Free-Opponent Shaping
