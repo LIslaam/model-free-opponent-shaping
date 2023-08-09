@@ -16,7 +16,7 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
         S = rand(-8, P-1)
  
     payout_mat_1 = torch.Tensor([[R, S], [T, P]]).to(device)
-    #print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
+    print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
     payout_mat_2 = payout_mat_1.T
     payout_mat_1 = payout_mat_1.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
     payout_mat_2 = payout_mat_2.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
@@ -35,11 +35,11 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
     
-    #payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
-     #                   torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
+    payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
+                        torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
     
     #payout = torch.sigmoid(payout)
-    payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
+    #payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
 
     return dims, Ls, payout
 
@@ -68,13 +68,42 @@ def random_batched(bs, gamma_inner=0.96, batch_size=4096):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
-    #payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
-     #                   torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
+    payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
+                        torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
 
     #payout = torch.sigmoid(payout)
-    payout = torch.reshape(torch.stack((payout_mat_1, payout_mat_2)), (1,2,4))
+    #payout = torch.reshape(torch.stack((payout_mat_1, payout_mat_2)), (1,2,4))
 
     return dims, Ls, payout # Need a try, except when calling environments
+
+
+def extreme_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
+    dims = [5, 5]
+    payout_mat_1 = torch.Tensor([[-1, -8], [0, -5]]).to(device)
+    payout_mat_2 = payout_mat_1.T
+    payout_mat_1 = payout_mat_1.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
+    payout_mat_2 = payout_mat_2.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
+
+    def Ls(th):  # th is a list of two different tensors. First one is first agent? tnesor size is List[Tensor(bs, 5), Tensor(bs,5)].
+        p_1_0 = torch.sigmoid(th[0][:, 0:1])
+        p_2_0 = torch.sigmoid(th[1][:, 0:1])
+        p = torch.cat([p_1_0 * p_2_0, p_1_0 * (1 - p_2_0), (1 - p_1_0) * p_2_0, (1 - p_1_0) * (1 - p_2_0)], dim=-1)
+        p_1 = torch.reshape(torch.sigmoid(th[0][:, 1:5]), (bs, 4, 1))
+        p_2 = torch.reshape(torch.sigmoid(torch.cat([th[1][:, 1:2], th[1][:, 3:4], th[1][:, 2:3], th[1][:, 4:5]], dim=-1)), (bs, 4, 1))
+        P = torch.cat([p_1 * p_2, p_1 * (1 - p_2), (1 - p_1) * p_2, (1 - p_1) * (1 - p_2)], dim=-1)
+
+        M = torch.matmul(p.unsqueeze(1), torch.inverse(torch.eye(4).to(device) - gamma_inner * P))
+        L_1 = -torch.matmul(M, torch.reshape(payout_mat_1, (bs, 4, 1)))
+        L_2 = -torch.matmul(M, torch.reshape(payout_mat_2, (bs, 4, 1)))
+
+        return [L_1.squeeze(-1), L_2.squeeze(-1), M]
+
+    payout = torch.flatten(payout_mat_1[0]).repeat((batch_size,2))
+    #payout = torch.sigmoid(payout)
+
+    #payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
+
+    return dims, Ls, payout
 
 
 def ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
@@ -98,10 +127,10 @@ def ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
-    #payout = torch.flatten(payout_mat_1[0]).repeat((batch_size,2))
+    payout = torch.flatten(payout_mat_1[0]).repeat((batch_size,2))
     #payout = torch.sigmoid(payout)
 
-    payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
+    #payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
 
     return dims, Ls, payout
 
@@ -249,6 +278,11 @@ class MetaGames:
             d, self.game_batched = chicken_game_batch(b)
             self.std = 1
             self.lr = 1
+        elif self.game == "extremeIPD":
+            d, self.game_batched, self.payout = extreme_ipd_batched(b, gamma_inner=self.gamma_inner,
+                                                             batch_size=self.b)
+            self.std = 1
+            self.lr = 1
         elif self.game == "random":
             d, self.game_batched, self.payout = random_batched(b, batch_size=self.b)
             self.std = 1
@@ -271,9 +305,9 @@ class MetaGames:
 
     def reset(self, info=False):
         if self.game == 'random':
-            d, self.game_batched, self.payout = random_batched(self.b, batch_size=self.b) # I added this to reset random matrix
+            d, self.game_batched, self.payout = random_batched(self.b, batch_size=self.b) # Reset random matrix
         if self.game == 'randIPD':
-            d, self.game_batched, self.payout = random_ipd_batched(self.b, batch_size=self.b) # I added this to reset random matrix
+            d, self.game_batched, self.payout = random_ipd_batched(self.b, batch_size=self.b) # Reset random matrix
         if self.init_th_ba is not None:
             self.inner_th_ba = self.init_th_ba.detach() * torch.ones((self.b, self.d), requires_grad=True).to(device)
         else:
@@ -326,7 +360,7 @@ class MetaGames:
         else:
             raise NotImplementedError
 
-        if self.game == "IPD" or self.game == "IMP":
+        if self.game == "IPD" or self.game == "IMP" or self.game=='extremeIPD' or self.game=='randIPD':
             return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), (-l2 * (1 - self.gamma_inner)).detach(), (-l1 * (1 - self.gamma_inner)).detach(), M
         else:
             return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), -l2.detach(), -l1.detach(), M

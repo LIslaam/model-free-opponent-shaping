@@ -51,7 +51,7 @@ class BatchedPolicies(nn.Module):
         self.fl2_nda = self.l_2 + self.l2_noise
         self.fb2_na = self.b_2 + self.b2_noise
 
-    def forward(self, state_nbs, payout):
+    def forward(self, state_nbs, payout=None):
         x = torch.einsum("nsd,nbs->nbd", self.fl1_nsd, state_nbs)
         x += self.fb1_nd.unsqueeze(1)  # ?
         x = torch.tanh(x)
@@ -63,9 +63,12 @@ class BatchedPolicies(nn.Module):
         if payout != None:
             payout_prob = self.aux(payout)
 
-        return x, payout_prob
+        try:
+            return x, payout_prob
+        except UnboundLocalError:
+            return x
 
-    def forward_eval(self, state_bs, payout, idx=None):
+    def forward_eval(self, state_bs, payout=None, idx=None):
         if not idx:
             x = torch.einsum("sd,bs->bd", self.l_1, state_bs)
             print(self.l_1, state_bs)
@@ -85,7 +88,10 @@ class BatchedPolicies(nn.Module):
         if payout != None:
             payout_prob = self.aux(payout)
 
-        return x, payout_prob
+        try:
+            return x, payout_prob
+        except UnboundLocalError:
+            return x
     
 
 class Auxiliary(nn.Module):

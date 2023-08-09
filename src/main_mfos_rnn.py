@@ -19,6 +19,7 @@ parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
 args = parser.parse_args()
 
+#### IF append_input, we input the last reward
 
 if __name__ == "__main__":
     ############################################
@@ -60,7 +61,7 @@ if __name__ == "__main__":
     action_dim = env.d
     state_dim = (env.d * 2)
     if args.append_input:
-        state_dim = (env.d * 2) + 2 # Changed way state is input
+        state_dim = (env.d * 2) + 1 # Input last reward
 
 
     memory = MemoryRecurrent()
@@ -90,12 +91,13 @@ if __name__ == "__main__":
         running_reward = torch.zeros(batch_size).cuda()
         running_opp_reward = torch.zeros(batch_size).cuda()
 
-        last_reward = 0
+        last_reward = torch.tensor([0]).repeat((1, batch_size))
         policy = []
 
         for t in range(num_steps):
             if args.append_input:
-                state = torch.cat([state, payout_probs], axis=-1)
+                reward_tensor = torch.tensor(last_reward).to(device).reshape((batch_size,1))
+                state = torch.cat([state, reward_tensor], axis=-1)
             # Running policy_old:
             action = ppo.policy_old.act(state, memory)
             state, reward, info, M = env.step(action)

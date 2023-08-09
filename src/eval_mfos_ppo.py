@@ -65,6 +65,7 @@ if __name__ == "__main__":
     if args.append_input:
         state_dim = (env.d * 2) + 2 # New input
 
+
     ppo = PPO(state_dim, action_dim, lr, betas, gamma, K_epochs, eps_clip, args.entropy)
 
     directory = "runs/" + name + '/'
@@ -89,7 +90,7 @@ if __name__ == "__main__":
 
         for t in range(num_steps):
             if args.append_input:
-                state = torch.cat([state, payout_probs.to(device)], axis=-1)
+                state = torch.cat([state, payout_probs.to(device)], axis=-1) #payout], axis=-1)
             # Running policy_old:
             action = ppo.policy_old.act(state, memory)
             state, reward, info, M = env.step(action)

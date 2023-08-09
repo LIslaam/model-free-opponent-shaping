@@ -1,9 +1,0 @@
-{
-  "game": "random",
-  "opponent": "NL",
-  "entropy": 0.01,
-  "exp_name": "mfos_ppo_seed0_uniform_rand_nl",
-  "checkpoint": "",
-  "mamaml_id": 0,
-  "seed": 0
-}

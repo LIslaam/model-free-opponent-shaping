@@ -187,7 +187,7 @@ class PPORecurrent:
         # Optimize policy for K epochs:
         for k in range(self.K_epochs):
             # Evaluating old actions and values :
-            print(f'{k} Epoch: ', 'MEM STATS 7: ', torch.cuda.memory_cached())
+            print(f'{k} hg: ', 'MEM STATS 7: ', torch.cuda.memory_cached())
             self.policy.reset_hidden()
             # logprobs_t, state_values_t, dist_entropy_t = [], [] , []
             # for t in range(len(old_states)):

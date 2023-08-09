@@ -21,10 +21,10 @@ if __name__ == "__main__":
     ############################################
     lr = 0.5
     num_species = 4096
-    max_episodes = 128
+    max_episodes = 64
     test_size = 4096
     batch_size = 128
-    random_seed = None
+    random_seed = args.seed
     num_steps = 100
     save_freq = 16
     name = args.exp_name
@@ -153,7 +153,6 @@ if __name__ == "__main__":
         print(f"Old Reward: {old_reward / num_steps}")
         print(f"Old Opp Reward: {old_opp_reward / num_steps}")
 
-        #print(agent.state_dict())
         if i % save_freq == 0:
             torch.save(agent.state_dict(), os.path.join('runs/' + name, f"{i}.pth"))
             with open(os.path.join('runs/' + name, f"out_{i}.json"), "w") as f:
