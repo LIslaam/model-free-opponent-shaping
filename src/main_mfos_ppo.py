@@ -30,8 +30,8 @@ if __name__ == "__main__":
     lr = 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 1024
-    batch_size = 4096
+    max_episodes = 10
+    batch_size =  4096
     random_seed = args.seed
     num_steps = 100
 
@@ -55,6 +55,9 @@ if __name__ == "__main__":
     # creating environment
     if args.seed != None:
         torch.manual_seed(random_seed) # Set seed for reproducability.
+
+    #if args.game == 'randIPD':
+     #   envs = [MetaGames(1, opponent=args.opponent, game=args.game) for i in range(batch_size)]
     env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id)
 
     action_dim = env.d
@@ -85,6 +88,8 @@ if __name__ == "__main__":
             payout_probs = torch.Tensor.repeat(aux(payout.to(device)), (batch_size,1))
         except ValueError:
             state = env.reset()
+        except IndexError:
+            state = env.reset()
 
         running_reward = torch.zeros(batch_size).cuda()
         running_opp_reward = torch.zeros(batch_size).cuda()
@@ -97,6 +102,7 @@ if __name__ == "__main__":
                 state = torch.cat([state, payout_probs], axis=-1) # payout], axis=-1)
             # Running policy_old:
             action = ppo.policy_old.act(state, memory)
+
             state, reward, info, M = env.step(action)
 
             memory.rewards.append(reward)

@@ -84,6 +84,9 @@ class ActorCritic(nn.Module):
 
         state_value = self.critic(state)
 
+        #print(state.size())
+        #print(torch.squeeze(state_value))
+
         return action_logprobs, torch.squeeze(state_value), dist_entropy
 
 
@@ -134,6 +137,8 @@ class PPO:
             ratios = torch.exp(logprobs - old_logprobs.detach())
 
             # Finding Surrogate Loss:
+            #print(rewards, 'stop')
+            #print(state_values.detach(), 'stop')
             advantages = rewards - state_values.detach()
             surr1 = ratios * advantages
             surr2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages

@@ -12,9 +12,9 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 parser = argparse.ArgumentParser()
 parser.add_argument("--game", type=str, required=True)
 parser.add_argument("--opponent", type=str, required=True)
+parser.add_argument("--checkpoint_ep", type=int, required=True)
 parser.add_argument("--entropy", type=float, default=0.01)
 parser.add_argument("--exp-name", type=str, default="")
-parser.add_argument("--checkpoint", type=str, default="")
 parser.add_argument("--mamaml-id", type=int, default=0)
 parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     ppo = PPO(state_dim, action_dim, lr, betas, gamma, K_epochs, eps_clip, args.entropy)
 
     directory = "runs/" + name + '/'
-    checkpoint_path = directory + "{}.pth".format(1024) # max episodes
+    checkpoint_path = directory + "{}.pth".format(args.checkpoint_ep) # max episodes
     print("loading network from : " + checkpoint_path)
 
     ppo.load(checkpoint_path)
