@@ -30,12 +30,12 @@ if __name__ == "__main__":
     lr = 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 10
+    max_episodes = 1024
     batch_size =  4096
     random_seed = args.seed
     num_steps = 100
 
-    save_freq = 250
+    save_freq = 256
     name = args.exp_name
 
     aux = Auxiliary().to(device)
@@ -85,10 +85,11 @@ if __name__ == "__main__":
     for i_episode in range(1, max_episodes + 1):
         try:
             state, payout = env.reset()
-            payout_probs = torch.Tensor.repeat(aux(payout.to(device)), (batch_size,1))
-        except ValueError:
-            state = env.reset()
-        except IndexError:
+            if args.game == 'randIPD':
+                payout_probs = torch.Tensor(aux(payout.to(device)))
+            else:
+                payout_probs = torch.Tensor.repeat(aux(payout.to(device)), (batch_size,1))
+        except ValueError or IndexError:
             state = env.reset()
 
         running_reward = torch.zeros(batch_size).cuda()
@@ -99,11 +100,16 @@ if __name__ == "__main__":
 
         for t in range(num_steps):
             if args.append_input:
+                if args.game == 'randIPD': # randIPD changes matrix every step
+                    payout_probs = torch.Tensor(aux(payout.to(device)))
                 state = torch.cat([state, payout_probs], axis=-1) # payout], axis=-1)
             # Running policy_old:
             action = ppo.policy_old.act(state, memory)
 
-            state, reward, info, M = env.step(action)
+            if args.game == 'randIPD':
+                state, reward, info, M, payout = env.step(action)
+            else:
+                state, reward, info, M = env.step(action)
 
             memory.rewards.append(reward)
             running_reward += reward.squeeze(-1)

@@ -176,7 +176,6 @@ class PPORecurrent:
         # Normalizing the rewards:
 #         rewards = torch.stack(rewards, dtype=torch.float32).to(device)
         rewards = torch.stack(rewards).squeeze(-1)#.detach()
-        rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-5)
 
         # convert list to tensor
         old_states = torch.stack(memory.states).detach()
@@ -210,6 +209,7 @@ class PPORecurrent:
 
             # Finding Surrogate Loss:
             advantages = rewards - state_values.detach()   
+            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
             surr1 = ratios * advantages
             surr2 = torch.clamp(ratios, 1-self.eps_clip, 1+self.eps_clip) * advantages
             loss = -torch.min(surr1, surr2) + 0.5*self.MseLoss(state_values, rewards) - self.entropy_bonus * dist_entropy

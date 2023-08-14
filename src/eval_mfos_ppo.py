@@ -30,7 +30,7 @@ if __name__ == "__main__":
     lr = 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 256
+    max_episodes = 1
     batch_size = 4096
     random_seed = args.seed
     num_steps = 100
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     for i_episode in range(1, max_episodes + 1):
         try:
             state, payout = env.reset()
-            payout_probs = torch.Tensor.repeat(aux(payout.to(device)), (batch_size,1))
+            payout_probs = torch.Tensor(aux(payout.to(device)))
         except ValueError:
             state = env.reset()
 

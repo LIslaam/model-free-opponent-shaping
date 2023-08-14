@@ -1,9 +1,0 @@
-{
-  "game": "randIPD",
-  "opponent": "NL",
-  "entropy": 0.01,
-  "exp_name": "test",
-  "mamaml_id": 0,
-  "seed": null,
-  "append_input": false
-}

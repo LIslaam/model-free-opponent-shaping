@@ -9,7 +9,7 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     dims = [5, 5]
     rand = lambda x,y: np.random.uniform(x,y)
     
-    def payout():
+    def pay():
         S,P,R,T = 0,0,0,0
         while 2*R <= T+S: # Condition for IPD, alongside T>R>P>S
             T = rand(-2, 0)
@@ -18,7 +18,7 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
             S = rand(-8, P-1)
     
         payout_mat_1 = torch.Tensor([[R, S], [T, P]]).to(device)
-        #print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
+        print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
         payout_mat_2 = payout_mat_1.T
         payout_mat_1 = payout_mat_1.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
         payout_mat_2 = payout_mat_2.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
@@ -26,7 +26,7 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
         return payout_mat_1, payout_mat_2
 
     def Ls(th):  # th is a list of two different tensors. First one is first agent? tensor size is List[Tensor(bs, 5), Tensor(bs,5)].
-        payout_mat_1, payout_mat_2 = payout()
+        payout_mat_1, payout_mat_2 = pay()
         p_1_0 = torch.sigmoid(th[0][:, 0:1])
         p_2_0 = torch.sigmoid(th[1][:, 0:1])
         p = torch.cat([p_1_0 * p_2_0, p_1_0 * (1 - p_2_0), (1 - p_1_0) * p_2_0, (1 - p_1_0) * (1 - p_2_0)], dim=-1)
@@ -38,15 +38,15 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
         L_1 = -torch.matmul(M, torch.reshape(payout_mat_1, (bs, 4, 1)))
         L_2 = -torch.matmul(M, torch.reshape(payout_mat_2, (bs, 4, 1)))
 
-        return [L_1.squeeze(-1), L_2.squeeze(-1), M]
-    
-    #payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
-     #                   torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
+        payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
+                              torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
+
+        return [L_1.squeeze(-1), L_2.squeeze(-1), M, payout]
     
     #payout = torch.sigmoid(payout)
     #payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
 
-    return dims, Ls,# payout
+    return dims, Ls, pay()
 
 
 def random_batched(bs, gamma_inner=0.96, batch_size=4096):
@@ -132,7 +132,7 @@ def ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
-    payout = torch.flatten(payout_mat_1[0]).repeat((batch_size,2))
+    payout = torch.flatten(payout_mat_1[0]).repeat((1,2))
     #payout = torch.sigmoid(payout)
 
     #payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
@@ -293,7 +293,7 @@ class MetaGames:
             self.std = 1
             self.lr = 1
         elif self.game == "randIPD":
-            d, self.game_batched = random_ipd_batched(b, batch_size=self.b)
+            d, self.game_batched, self.payout = random_ipd_batched(b, batch_size=self.b)
             self.std = 1
             self.lr = 1
         else:
@@ -312,13 +312,17 @@ class MetaGames:
         if self.game == 'random':
             d, self.game_batched, self.payout = random_batched(self.b, batch_size=self.b) # Reset random matrix
         if self.game == 'randIPD':
-            d, self.game_batched = random_ipd_batched(self.b, batch_size=self.b) # Reset random matrix
+            d, self.game_batched, self.payout = random_ipd_batched(self.b, batch_size=self.b) # Reset random matrix
         if self.init_th_ba is not None:
             self.inner_th_ba = self.init_th_ba.detach() * torch.ones((self.b, self.d), requires_grad=True).to(device)
         else:
             self.inner_th_ba = torch.nn.init.normal_(torch.empty((self.b, self.d), requires_grad=True), std=self.std).to(device)
         outer_th_ba = torch.nn.init.normal_(torch.empty((self.b, self.d), requires_grad=True), std=self.std).to(device)
-        state, _, _, M = self.step(outer_th_ba)
+        
+        try:
+            state, _, _, M, self.payout = self.step(outer_th_ba)
+        except ValueError:
+            state, _, _, M = self.step(outer_th_ba)
 
         if info:
             try:
@@ -339,14 +343,20 @@ class MetaGames:
         last_inner_th_ba = self.inner_th_ba.detach().clone()
         if self.opponent == "NL" or self.opponent == "MAMAML":
             th_ba = [self.inner_th_ba, outer_th_ba.detach()]
-            l1, l2, M = self.game_batched(th_ba)
+            if self.game == 'randIPD':
+                l1, l2, M, payout = self.game_batched(th_ba)
+            else:
+                l1, l2, M = self.game_batched(th_ba)
             grad = get_gradient(l1.sum(), self.inner_th_ba)
             with torch.no_grad():
                 self.inner_th_ba -= grad * self.lr
         elif self.opponent == "LOLA":
             th_ba = [self.inner_th_ba, outer_th_ba.detach()]
             th_ba[1].requires_grad = True
-            l1, l2, M = self.game_batched(th_ba)
+            if self.game == 'randIPD':
+                l1, l2, M, payout = self.game_batched(th_ba)
+            else:
+                l1, l2, M = self.game_batched(th_ba)
             losses = [l1, l2]
             grad_L = [[get_gradient(losses[j].sum(), th_ba[i]) for j in range(2)] for i in range(2)]
             term = (grad_L[1][0] * grad_L[1][1]).sum()
@@ -369,8 +379,10 @@ class MetaGames:
         else:
             raise NotImplementedError
 
-        if self.game == "IPD" or self.game == "IMP" or self.game=='extremeIPD' or self.game=='randIPD':
+        if self.game == "IPD" or self.game == "IMP" or self.game=='extremeIPD':
             return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), (-l2 * (1 - self.gamma_inner)).detach(), (-l1 * (1 - self.gamma_inner)).detach(), M
+        elif self.game == 'randIPD':
+            return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), (-l2 * (1 - self.gamma_inner)).detach(), (-l1 * (1 - self.gamma_inner)).detach(), M, payout
         else:
             return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), -l2.detach(), -l1.detach(), M
 
