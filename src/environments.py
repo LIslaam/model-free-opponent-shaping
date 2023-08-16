@@ -118,9 +118,10 @@ def noisy_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     payout_mat_1 = payout_mat_1.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
     payout_mat_2 = payout_mat_2.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
 
-    payout_noise = 1e-2 * torch.randn(size=(bs, 2, 2)).to(device)
+    payout_noise = 1 * torch.randn(size=(bs, 2, 2)).to(device)
     payout_mat_1 = payout_mat_1 + payout_noise
     payout_mat_2 = payout_mat_2 + payout_noise
+    #print(payout_mat_1)
 
     def Ls(th):  # th is a list of two different tensors. First one is first agent? tnesor size is List[Tensor(bs, 5), Tensor(bs,5)].
         p_1_0 = torch.sigmoid(th[0][:, 0:1])
@@ -321,7 +322,7 @@ class MetaGames:
                                                              batch_size=self.b)
             self.std = 1
             self.lr = 1
-        if self.game == "noisyIPD":
+        elif self.game == "noisyIPD":
             d, self.game_batched, self.payout = noisy_ipd_batched(b, gamma_inner=self.gamma_inner,
                                                                 batch_size=self.b)
             self.std = 1
