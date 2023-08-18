@@ -28,7 +28,7 @@ if __name__ == "__main__":
     eps_clip = 0.2  # clip parameter for PPO
     gamma = 0.99  # discount factor
 
-    lr = 0.002  # parameters for Adam optimizer
+    lr = 0.02 # 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
     max_episodes = 2048
@@ -100,7 +100,10 @@ if __name__ == "__main__":
                 state = torch.cat([state, reward_tensor], axis=-1)
             # Running policy_old:
             action = ppo.policy_old.act(state, memory)
-            state, reward, info, M = env.step(action)
+            if args.game == 'randIPD':
+                state, reward, info, M, payout = env.step(action)
+            else:
+                state, reward, info, M = env.step(action)
 
             memory.rewards.append(reward)
             running_reward += reward.squeeze(-1)

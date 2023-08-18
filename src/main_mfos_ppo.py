@@ -27,7 +27,7 @@ if __name__ == "__main__":
     eps_clip = 0.2  # clip parameter for PPO
     gamma = 0.99  # discount factor
 
-    lr = 0.002  # parameters for Adam optimizer
+    lr = 0.002 # 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
     max_episodes = 1024
@@ -85,10 +85,10 @@ if __name__ == "__main__":
     for i_episode in range(1, max_episodes + 1):
         try:
             state, payout = env.reset()
-            if args.game == 'randIPD':
-                payout_probs = torch.Tensor(aux(payout.to(device)))
-            else:
-                payout_probs = torch.Tensor.repeat(aux(payout.to(device)), (batch_size,1))
+            #if args.game == 'randIPD':
+             #   payout_probs = torch.Tensor(aux(payout.to(device)))
+            #else:
+            payout_probs = torch.Tensor.repeat(aux(payout.to(device)), (batch_size,1))
         except ValueError or IndexError:
             state = env.reset()
 

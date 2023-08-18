@@ -18,7 +18,7 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
             S = rand(-8, P-1)
     
         payout_mat_1 = torch.Tensor([[R, S], [T, P]]).to(device)
-        print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
+        #print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
         payout_mat_2 = payout_mat_1.T
         payout_mat_1 = payout_mat_1.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
         payout_mat_2 = payout_mat_2.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
