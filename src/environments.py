@@ -8,7 +8,17 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     # https://en.wikipedia.org/wiki/Prisoner%27s_dilemma#Generalized_form
     dims = [5, 5]
     rand = lambda x,y: np.random.uniform(x,y)
+
+    T = torch.random.uniform(-2, 0, shape=(bs,))
+    R = torch.random.uniform(-2, 0, shape=(bs,))
+    P = torch.random.uniform(-2, 0, shape=(bs,))
+    S = torch.random.uniform(-2, 0, shape=(bs,))
+
+    payout_mat_1 = torch.cat([R, S, T, P], axis=-1)
+    payout_mat_1 = payout_mat_1.reshape((bs, 2, 2))
+    payout_mat_2 = payout_mat_1.mT
     
+    """
     def pay():
         S,P,R,T = 0,0,0,0
         while 2*R <= T+S: # Condition for IPD, alongside T>R>P>S
@@ -24,9 +34,9 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
         payout_mat_2 = payout_mat_2.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
 
         return payout_mat_1, payout_mat_2
+        """
 
     def Ls(th):  # th is a list of two different tensors. First one is first agent? tensor size is List[Tensor(bs, 5), Tensor(bs,5)].
-        payout_mat_1, payout_mat_2 = pay()
         p_1_0 = torch.sigmoid(th[0][:, 0:1])
         p_2_0 = torch.sigmoid(th[1][:, 0:1])
         p = torch.cat([p_1_0 * p_2_0, p_1_0 * (1 - p_2_0), (1 - p_1_0) * p_2_0, (1 - p_1_0) * (1 - p_2_0)], dim=-1)
@@ -38,15 +48,14 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
         L_1 = -torch.matmul(M, torch.reshape(payout_mat_1, (bs, 4, 1)))
         L_2 = -torch.matmul(M, torch.reshape(payout_mat_2, (bs, 4, 1)))
 
-        payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
-                              torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
-
-        return [L_1.squeeze(-1), L_2.squeeze(-1), M, payout]
+        return [L_1.squeeze(-1), L_2.squeeze(-1), M]
     
+    payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
+                            torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
     #payout = torch.sigmoid(payout)
     #payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
 
-    return dims, Ls, pay()
+    return dims, Ls, payout
 
 
 def random_batched(bs, gamma_inner=0.96, batch_size=4096):
@@ -111,14 +120,14 @@ def extreme_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     return dims, Ls, payout
 
 
-def noisy_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
+def noisy_ipd_batched(bs, gamma_inner=0.96, batch_size=4096, noise=0.1):
     dims = [5, 5]
     payout_mat_1 = torch.Tensor([[-1, -3], [0, -2]]).to(device)
     payout_mat_2 = payout_mat_1.T
     payout_mat_1 = payout_mat_1.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
     payout_mat_2 = payout_mat_2.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
 
-    payout_noise = 1 * torch.randn(size=(bs, 2, 2)).to(device)
+    payout_noise = noise * torch.randn(size=(bs, 2, 2)).to(device)
     payout_mat_1 = payout_mat_1 + payout_noise
     payout_mat_2 = payout_mat_2 + payout_noise
     #print(payout_mat_1)
