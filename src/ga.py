@@ -98,7 +98,7 @@ class Auxiliary(nn.Module):
     # Class to compress payout matrix
     def __init__(self, device=None, dtype=None):
         super().__init__()
-        # Take in two 2x2 matrices input, turn them into 2 numbers
+        # Take in 2x4 matrix input (agent1, agent2), turn them into 2 numbers
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(8, 128),

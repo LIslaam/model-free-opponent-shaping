@@ -75,10 +75,10 @@ if __name__ == "__main__":
     ppo.load(checkpoint_path)
     rew_means = []
 
-        # ONLY ONE EPISODE
+    # ONLY ONE EPISODE
     try:
         state, payout = env.reset()
-        #payout_probs = torch.Tensor(aux(payout.to(device)))
+        payout_probs = torch.Tensor(aux(payout.to(device)))
     except ValueError:
         state = env.reset()
 

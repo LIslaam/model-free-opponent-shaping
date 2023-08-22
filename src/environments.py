@@ -9,32 +9,20 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     dims = [5, 5]
     rand = lambda x,y: np.random.uniform(x,y)
 
-    T = torch.random.uniform(-2, 0, shape=(bs,))
-    R = torch.random.uniform(-2, 0, shape=(bs,))
-    P = torch.random.uniform(-2, 0, shape=(bs,))
-    S = torch.random.uniform(-2, 0, shape=(bs,))
-
-    payout_mat_1 = torch.cat([R, S, T, P], axis=-1)
-    payout_mat_1 = payout_mat_1.reshape((bs, 2, 2))
-    payout_mat_2 = payout_mat_1.mT
-    
-    """
     def pay():
         S,P,R,T = 0,0,0,0
         while 2*R <= T+S: # Condition for IPD, alongside T>R>P>S
             T = rand(-2, 0)
-            R = rand(-4, T-1)
-            P = rand(-6, R-1)
-            S = rand(-8, P-1)
-    
-        payout_mat_1 = torch.Tensor([[R, S], [T, P]]).to(device)
-        #print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
-        payout_mat_2 = payout_mat_1.T
-        payout_mat_1 = payout_mat_1.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
-        payout_mat_2 = payout_mat_2.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
+            R = rand(-4, T)
+            P = rand(-6, R)
+            S = rand(-8, P)
 
-        return payout_mat_1, payout_mat_2
-        """
+            return torch.Tensor([[R, S], [T, P]]).to(device)
+
+    payout_mat_1 = torch.cat([pay() for _ in range(bs)], axis=-1)
+    payout_mat_1 = payout_mat_1.reshape((bs, 2, 2))
+    payout_mat_2 = payout_mat_1.mT
+    
 
     def Ls(th):  # th is a list of two different tensors. First one is first agent? tensor size is List[Tensor(bs, 5), Tensor(bs,5)].
         p_1_0 = torch.sigmoid(th[0][:, 0:1])
@@ -50,10 +38,9 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
     
-    payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
-                            torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
+    payout = torch.cat([torch.cat([payout_mat_1[i], payout_mat_2[i]]) for i in range(bs)])
+    payout = torch.reshape(payout, (bs,1,8))
     #payout = torch.sigmoid(payout)
-    #payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
 
     return dims, Ls, payout
 
@@ -82,11 +69,8 @@ def random_batched(bs, gamma_inner=0.96, batch_size=4096):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
-    payout = torch.cat([torch.reshape(payout_mat_1, (batch_size,4)), 
-                        torch.reshape(payout_mat_2, (batch_size,4))], axis=1)
-
-    #payout = torch.sigmoid(payout)
-    #payout = torch.reshape(torch.stack((payout_mat_1, payout_mat_2)), (1,2,4))
+    payout = torch.cat([torch.cat([payout_mat_1[i], payout_mat_2[i]]) for i in range(bs)])
+    payout = torch.reshape(payout, (bs,2,4))
 
     return dims, Ls, payout # Need a try, except when calling environments
 
@@ -120,7 +104,7 @@ def extreme_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     return dims, Ls, payout
 
 
-def noisy_ipd_batched(bs, gamma_inner=0.96, batch_size=4096, noise=0.1):
+def noisy_ipd_batched(bs, gamma_inner=0.96, batch_size=4096, noise=0.05):
     dims = [5, 5]
     payout_mat_1 = torch.Tensor([[-1, -3], [0, -2]]).to(device)
     payout_mat_2 = payout_mat_1.T
@@ -146,10 +130,8 @@ def noisy_ipd_batched(bs, gamma_inner=0.96, batch_size=4096, noise=0.1):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
-    payout = torch.flatten(payout_mat_1[0]).repeat((1,2))
-    #payout = torch.sigmoid(payout)
-
-    #payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
+    payout = torch.cat([torch.cat([payout_mat_1[i], payout_mat_2[i]]) for i in range(bs)])
+    payout = torch.reshape(payout, (bs,1,8))
 
     return dims, Ls, payout
 
@@ -175,10 +157,9 @@ def ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
 
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
-    payout = torch.flatten(payout_mat_1[0]).repeat((1,2))
+    payout = torch.cat([torch.cat([payout_mat_1[i], payout_mat_2[i]]) for i in range(bs)])
+    payout = torch.reshape(payout, (bs,1,8))
     #payout = torch.sigmoid(payout)
-
-    #payout = torch.reshape(torch.stack((payout_mat_1[0], payout_mat_2[0])), (1,2,4))
 
     return dims, Ls, payout
 
@@ -393,20 +374,14 @@ class MetaGames:
         last_inner_th_ba = self.inner_th_ba.detach().clone()
         if self.opponent == "NL" or self.opponent == "MAMAML":
             th_ba = [self.inner_th_ba, outer_th_ba.detach()]
-            if self.game == 'randIPD':
-                l1, l2, M, payout = self.game_batched(th_ba)
-            else:
-                l1, l2, M = self.game_batched(th_ba)
+            l1, l2, M = self.game_batched(th_ba)
             grad = get_gradient(l1.sum(), self.inner_th_ba)
             with torch.no_grad():
                 self.inner_th_ba -= grad * self.lr
         elif self.opponent == "LOLA":
             th_ba = [self.inner_th_ba, outer_th_ba.detach()]
             th_ba[1].requires_grad = True
-            if self.game == 'randIPD':
-                l1, l2, M, payout = self.game_batched(th_ba)
-            else:
-                l1, l2, M = self.game_batched(th_ba)
+            l1, l2, M = self.game_batched(th_ba)
             losses = [l1, l2]
             grad_L = [[get_gradient(losses[j].sum(), th_ba[i]) for j in range(2)] for i in range(2)]
             term = (grad_L[1][0] * grad_L[1][1]).sum()
@@ -429,10 +404,8 @@ class MetaGames:
         else:
             raise NotImplementedError
 
-        if self.game == "IPD" or self.game == "IMP" or self.game=='extremeIPD' or self.game=='noisyIPD':
+        if self.game == "IPD" or self.game == "IMP" or self.game=='extremeIPD' or self.game=='noisyIPD' or self.game == 'randIPD':
             return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), (-l2 * (1 - self.gamma_inner)).detach(), (-l1 * (1 - self.gamma_inner)).detach(), M
-        elif self.game == 'randIPD':
-            return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), (-l2 * (1 - self.gamma_inner)).detach(), (-l1 * (1 - self.gamma_inner)).detach(), M, payout
         else:
             return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), -l2.detach(), -l1.detach(), M
 

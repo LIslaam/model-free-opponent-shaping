@@ -56,8 +56,6 @@ if __name__ == "__main__":
     if args.seed != None:
         torch.manual_seed(random_seed) # Set seed for reproducability.
 
-    #if args.game == 'randIPD':
-     #   envs = [MetaGames(1, opponent=args.opponent, game=args.game) for i in range(batch_size)]
     env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id)
 
     action_dim = env.d
@@ -85,10 +83,7 @@ if __name__ == "__main__":
     for i_episode in range(1, max_episodes + 1):
         try:
             state, payout = env.reset()
-            #if args.game == 'randIPD':
-             #   payout_probs = torch.Tensor(aux(payout.to(device)))
-            #else:
-            payout_probs = torch.Tensor.repeat(aux(payout.to(device)), (batch_size,1))
+            payout_probs = torch.cat([aux(payout[i].to(device)) for i in range(batch_size)])
         except ValueError or IndexError:
             state = env.reset()
 
@@ -100,16 +95,11 @@ if __name__ == "__main__":
 
         for t in range(num_steps):
             if args.append_input:
-                if args.game == 'randIPD': # randIPD changes matrix every step
-                    payout_probs = torch.Tensor(aux(payout.to(device)))
                 state = torch.cat([state, payout_probs], axis=-1) # payout], axis=-1)
             # Running policy_old:
             action = ppo.policy_old.act(state, memory)
 
-            if args.game == 'randIPD':
-                state, reward, info, M, payout = env.step(action)
-            else:
-                state, reward, info, M = env.step(action)
+            state, reward, info, M = env.step(action)
 
             memory.rewards.append(reward)
             running_reward += reward.squeeze(-1)
