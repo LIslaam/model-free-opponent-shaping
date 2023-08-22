@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # ONLY ONE EPISODE
     try:
         state, payout = env.reset()
-        #payout_probs = torch.Tensor(aux(payout.to(device)))
+        payout_probs = torch.cat([aux(payout[i].to(device)) for i in range(batch_size)])
     except ValueError:
         state = env.reset()
 

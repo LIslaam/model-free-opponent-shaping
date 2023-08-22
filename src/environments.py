@@ -104,7 +104,7 @@ def extreme_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     return dims, Ls, payout
 
 
-def noisy_ipd_batched(bs, gamma_inner=0.96, batch_size=4096, noise=0.05):
+def noisy_ipd_batched(bs, gamma_inner=0.96, batch_size=4096, noise=0.5):
     dims = [5, 5]
     payout_mat_1 = torch.Tensor([[-1, -3], [0, -2]]).to(device)
     payout_mat_2 = payout_mat_1.T

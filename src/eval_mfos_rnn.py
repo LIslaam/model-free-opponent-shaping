@@ -27,7 +27,7 @@ if __name__ == "__main__":
     eps_clip = 0.2  # clip parameter for PPO
     gamma = 0.99  # discount factor
 
-    lr = 0.002  # parameters for Adam optimizer
+    lr = 0.02  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
     max_episodes = 1
@@ -78,19 +78,21 @@ if __name__ == "__main__":
     # ONLY ONE EPISODE
     try:
         state, payout = env.reset()
-        payout_probs = torch.Tensor(aux(payout.to(device)))
+        payout_probs = torch.cat([aux(payout[i].to(device)) for i in range(batch_size)])
     except ValueError:
         state = env.reset()
 
     running_reward = torch.zeros(batch_size).cuda()
     running_opp_reward = torch.zeros(batch_size).cuda()
 
-    last_reward = 0
+    last_reward = torch.tensor([0]).repeat((1, batch_size))
     policy = []
 
     for t in range(num_steps):
         if args.append_input:
-            state = torch.cat([state, payout_probs.to(device)], axis=-1) #payout], axis=-1)
+            reward_tensor = torch.tensor(last_reward).to(device).reshape((batch_size,1))
+            state = torch.cat([state, reward_tensor], axis=-1)
+            
         # Running policy_old:
         action = ppo.policy_old.act(state, memory)
         state, reward, info, M = env.step(action)
