@@ -17,6 +17,7 @@ parser.add_argument("--checkpoint", type=str, default="")
 parser.add_argument("--mamaml-id", type=int, default=0)
 parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
+parser.add_argument("--lr", type=float, default=0.02)
 args = parser.parse_args()
 
 #### IF append_input, we input the last reward
@@ -28,10 +29,10 @@ if __name__ == "__main__":
     eps_clip = 0.2  # clip parameter for PPO
     gamma = 0.99  # discount factor
 
-    lr = 0.02 # 0.002  # parameters for Adam optimizer
+    lr = args.lr # 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 2048
+    max_episodes = 4096 #2048
     batch_size = 128
     random_seed = args.seed
     num_steps = 100

@@ -48,12 +48,12 @@ def random_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
 def random_batched(bs, gamma_inner=0.96, batch_size=4096):
     dims = [5, 5]
     rand = lambda x,y: round(np.random.uniform(x,y))
-    payout_mat_1 = torch.Tensor([[rand(-10,0), rand(-10,0)], 
-                                 [rand(-10,0), rand(-10,0)]]).to(device)
+
+    payout_mat_1 = torch.cat([torch.Tensor([[rand(-10,0), rand(-10,0)], 
+                                 [rand(-10,0), rand(-10,0)]]).to(device) for _ in range(bs)], axis=-1)
+    payout_mat_1 = payout_mat_1.reshape((bs, 2, 2))
     #print(payout_mat_1) # Test to see if main_mfos_ppo.py creates a new environment
-    payout_mat_2 = payout_mat_1.T
-    payout_mat_1 = payout_mat_1.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
-    payout_mat_2 = payout_mat_2.reshape((1, 2, 2)).repeat(bs, 1, 1).to(device)
+    payout_mat_2 = payout_mat_1.mT
 
     def Ls(th):  # th is a list of two different tensors. First one is first agent? tensor size is List[Tensor(bs, 5), Tensor(bs,5)].
         p_1_0 = torch.sigmoid(th[0][:, 0:1])
@@ -70,7 +70,7 @@ def random_batched(bs, gamma_inner=0.96, batch_size=4096):
         return [L_1.squeeze(-1), L_2.squeeze(-1), M]
 
     payout = torch.cat([torch.cat([payout_mat_1[i], payout_mat_2[i]]) for i in range(bs)])
-    payout = torch.reshape(payout, (bs,2,4))
+    payout = torch.reshape(payout, (bs,1,8))
 
     return dims, Ls, payout # Need a try, except when calling environments
 
@@ -104,7 +104,7 @@ def extreme_ipd_batched(bs, gamma_inner=0.96, batch_size=4096):
     return dims, Ls, payout
 
 
-def noisy_ipd_batched(bs, gamma_inner=0.96, batch_size=4096, noise=0.5):
+def noisy_ipd_batched(bs, gamma_inner=0.96, batch_size=4096, noise=0.05):
     dims = [5, 5]
     payout_mat_1 = torch.Tensor([[-1, -3], [0, -2]]).to(device)
     payout_mat_2 = payout_mat_1.T
@@ -282,7 +282,7 @@ def generate_mamaml(b, d, inner_env, game, inner_lr=1):
 
 
 class MetaGames:
-    def __init__(self, b, opponent="NL", game="IPD", mmapg_id=0, payout=None):
+    def __init__(self, b, opponent="NL", game="IPD", mmapg_id=0, payout=None, opp_lr=1):
         """
         Opponent can be:
         NL = Naive Learner (gradient updates through environment).
@@ -298,33 +298,33 @@ class MetaGames:
             d, self.game_batched, self.payout = ipd_batched(b, gamma_inner=self.gamma_inner,
                                                              batch_size=self.b)
             self.std = 1
-            self.lr = 1
+            self.lr = opp_lr
         elif self.game == "IMP":
             d, self.game_batched = imp_batched(b, gamma_inner=self.gamma_inner)
             self.std = 1
-            self.lr = 1
+            self.lr = opp_lr
         elif self.game == "chicken":
             d, self.game_batched = chicken_game_batch(b)
             self.std = 1
-            self.lr = 1
+            self.lr = opp_lr
         elif self.game == "extremeIPD":
             d, self.game_batched, self.payout = extreme_ipd_batched(b, gamma_inner=self.gamma_inner,
                                                              batch_size=self.b)
             self.std = 1
-            self.lr = 1
+            self.lr = opp_lr
         elif self.game == "noisyIPD":
             d, self.game_batched, self.payout = noisy_ipd_batched(b, gamma_inner=self.gamma_inner,
                                                                 batch_size=self.b)
             self.std = 1
-            self.lr = 1
+            self.lr = opp_lr
         elif self.game == "random":
             d, self.game_batched, self.payout = random_batched(b, batch_size=self.b)
             self.std = 1
-            self.lr = 1
+            self.lr = opp_lr
         elif self.game == "randIPD":
             d, self.game_batched, self.payout = random_ipd_batched(b, batch_size=self.b)
             self.std = 1
-            self.lr = 1
+            self.lr = opp_lr
         else:
             raise NotImplementedError
         self.d = d[0]
@@ -404,7 +404,7 @@ class MetaGames:
         else:
             raise NotImplementedError
 
-        if self.game == "IPD" or self.game == "IMP" or self.game=='extremeIPD' or self.game=='noisyIPD' or self.game == 'randIPD':
+        if self.game == "IPD" or self.game == "IMP" or self.game=='extremeIPD' or self.game=='noisyIPD' or self.game == 'randIPD' or self.game=='random':
             return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), (-l2 * (1 - self.gamma_inner)).detach(), (-l1 * (1 - self.gamma_inner)).detach(), M
         else:
             return torch.sigmoid(torch.cat((outer_th_ba, last_inner_th_ba), dim=-1)).detach(), -l2.detach(), -l1.detach(), M
@@ -467,7 +467,7 @@ class SymmetricMetaGames:
 
 
 class NonMfosMetaGames:
-    def __init__(self, b, p1="NL", p2="NL", game="IPD", lr=None, mmapg_id=None):
+    def __init__(self, b, p1="NL", p2="NL", game="IPD", lr=1, mmapg_id=None):
         """
         Opponent can be:
         NL = Naive Learner (gradient updates through environment).
@@ -483,21 +483,21 @@ class NonMfosMetaGames:
         if self.game == "IPD" or self.game == 'inputIPD':
             d, self.game_batched = ipd_batched(b, gamma_inner=self.gamma_inner)
             self.std = 1
-            self.lr = 1
+            self.lr = lr
         elif self.game == "IMP":
             d, self.game_batched = imp_batched(b, gamma_inner=self.gamma_inner)
             self.std = 1
-            self.lr = 1
+            self.lr = lr
         elif self.game == "chicken":
             d, self.game_batched = chicken_game_batch(b)
             self.std = 1
-            self.lr = 1
+            self.lr = lr
         elif self.game == "random":
             d, self.game_batched = random_batched(b)
-            self.std = 1
+            self.std = lr
         elif self.game == "randIPD":
             d, self.game_batched = random_ipd_batched(b)
-            self.std = 1
+            self.std = lr
         else:
             raise NotImplementedError
 

@@ -10,6 +10,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--game", type=str, required=True)
+parser.add_argument("--agent", type=str, required=True)
 parser.add_argument("--opponent", type=str, required=True)
 parser.add_argument("--entropy", type=float, default=0.01)
 parser.add_argument("--exp-name", type=str, default="")
@@ -32,7 +33,8 @@ if __name__ == "__main__":
     lr = args.lr # 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 1024 #1024
+    max_episodes = 1024
+     #1024
     batch_size =  4096
     random_seed = args.seed
     num_steps = 100
@@ -58,7 +60,7 @@ if __name__ == "__main__":
     if args.seed != None:
         torch.manual_seed(random_seed) # Set seed for reproducability.
 
-    env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id, opp_lr=args.opp_lr)
+    env = NonMfosMetaGames(batch_size, p1=args.agent, p2=args.opponent, game=args.game, mmapg_id=args.mamaml_id, opp_lr=args.opp_lr)
 
     action_dim = env.d
     state_dim = (env.d * 2)

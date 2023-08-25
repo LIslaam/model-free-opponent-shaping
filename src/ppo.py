@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import wandb
 from torch.distributions import MultivariateNormal
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -112,6 +113,7 @@ class PPO:
         return self.policy_old.act(state, memory).cpu().data.numpy().flatten()
 
     def update(self, memory):
+        wandb.init()
         # Monte Carlo estimate of rewards:
         rewards = []
         discounted_reward = 0
@@ -145,11 +147,18 @@ class PPO:
             surr1 = ratios * advantages
             surr2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
             loss = -torch.min(surr1, surr2) + 0.5 * self.MseLoss(state_values, rewards) - self.entropy_bonus * dist_entropy
-
+            entropy_loss = (self.entropy_bonus * dist_entropy).mean()
             # take gradient step
             self.optimizer.zero_grad()
             loss.mean().backward()
             self.optimizer.step()
+
+        wandb.log({
+            'total_loss': loss.mean(), 
+            'advantages': advantages.mean(), 
+            'surr1': surr1.mean(), 
+            'surr2': surr2.mean(),
+            'entropy_loss': entropy_loss,})
 
         # Copy new weights into old policy:
         self.policy_old.load_state_dict(self.policy.state_dict())
