@@ -18,6 +18,7 @@ parser.add_argument("--exp-name", type=str, default="")
 parser.add_argument("--mamaml-id", type=int, default=0)
 parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
+parser.add_argument("--opp_lr", type=float, default=1)
 args = parser.parse_args()
 
 if __name__ == "__main__":
@@ -57,14 +58,13 @@ if __name__ == "__main__":
     #################################################
     if args.seed != None:
         torch.manual_seed(random_seed)
-    env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id)
+    env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id, opp_lr=args.opp_lr)
     memory = Memory()
     
     action_dim = env.d
     state_dim = env.d * 2
     if args.append_input:
         state_dim = (env.d * 2) + 2 # New input
-
 
     ppo = PPO(state_dim, action_dim, lr, betas, gamma, K_epochs, eps_clip, args.entropy)
 

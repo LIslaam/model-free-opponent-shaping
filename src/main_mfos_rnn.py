@@ -17,6 +17,7 @@ parser.add_argument("--checkpoint", type=str, default="")
 parser.add_argument("--mamaml-id", type=int, default=0)
 parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
+parser.add_argument("--opp_lr", type=float, default=1)
 parser.add_argument("--lr", type=float, default=0.02)
 args = parser.parse_args()
 
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     # creating environment
     if args.seed != None:
         torch.manual_seed(random_seed) # Set seed for reproducability.
-    env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id)
+    env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id, opp_lr=args.opp_lr)
 
     action_dim = env.d
     state_dim = (env.d * 2)

@@ -113,7 +113,7 @@ class PPO:
         return self.policy_old.act(state, memory).cpu().data.numpy().flatten()
 
     def update(self, memory):
-        wandb.init()
+        #wandb.init()
         # Monte Carlo estimate of rewards:
         rewards = []
         discounted_reward = 0
@@ -153,12 +153,14 @@ class PPO:
             loss.mean().backward()
             self.optimizer.step()
 
+        '''
         wandb.log({
             'total_loss': loss.mean(), 
             'advantages': advantages.mean(), 
             'surr1': surr1.mean(), 
             'surr2': surr2.mean(),
             'entropy_loss': entropy_loss,})
+        '''
 
         # Copy new weights into old policy:
         self.policy_old.load_state_dict(self.policy.state_dict())

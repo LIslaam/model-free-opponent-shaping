@@ -1,6 +1,5 @@
 import torch
-from ppo import PPO, Memory
-from environments import MetaGames
+from environments import NonMfosMetaGames
 from ga import Auxiliary
 import os
 import argparse
@@ -13,12 +12,12 @@ parser.add_argument("--game", type=str, required=True)
 parser.add_argument("--agent", type=str, required=True)
 parser.add_argument("--opponent", type=str, required=True)
 parser.add_argument("--entropy", type=float, default=0.01)
-parser.add_argument("--exp-name", type=str, default="")
+parser.add_argument("--exp_name", type=str, default="")
 parser.add_argument("--checkpoint", type=str, default="")
 parser.add_argument("--mamaml-id", type=int, default=0)
 parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
-parser.add_argument("--lr", type=float, default=0.002)
+parser.add_argument("--lr", type=float, default=1)
 parser.add_argument("--opp_lr", type=float, default=1)
 args = parser.parse_args()
 
@@ -30,11 +29,10 @@ if __name__ == "__main__":
     eps_clip = 0.2  # clip parameter for PPO
     gamma = 0.99  # discount factor
 
-    lr = args.lr # 0.002  # parameters for Adam optimizer
+    lr = args.lr  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 1024
-     #1024
+    max_episodes = 512
     batch_size =  4096
     random_seed = args.seed
     num_steps = 100
@@ -60,21 +58,14 @@ if __name__ == "__main__":
     if args.seed != None:
         torch.manual_seed(random_seed) # Set seed for reproducability.
 
-    env = NonMfosMetaGames(batch_size, p1=args.agent, p2=args.opponent, game=args.game, mmapg_id=args.mamaml_id, opp_lr=args.opp_lr)
+    env = NonMfosMetaGames(batch_size, lr=lr, opp_lr=args.opp_lr, p1=args.agent, p2=args.opponent, game=args.game, mmapg_id=args.mamaml_id)
 
     action_dim = env.d
     state_dim = (env.d * 2)
     if args.append_input:
         state_dim = (env.d * 2) + 2 # Changed way state is input
 
-
-    memory = Memory()
-    ppo = PPO(state_dim, action_dim, lr, betas, gamma, K_epochs, eps_clip, args.entropy)
-
-    if args.checkpoint:
-        ppo.load(args.checkpoint)
-
-    print(lr, betas)
+    print(lr, args.opp_lr, betas)
 
     # logging variables
     running_reward = 0
@@ -84,64 +75,49 @@ if __name__ == "__main__":
     # training loop
     rew_means = []
 
-    for i_episode in range(1, max_episodes + 1):
+    for i_episode in range(1, max_episodes + 1): # NO META-LEARNING in this case.
         try:
             state, payout = env.reset()
             payout_probs = torch.cat([aux(payout[i].to(device)) for i in range(batch_size)])
         except ValueError or IndexError:
             state = env.reset()
 
-        running_reward = torch.zeros(batch_size).cuda()
-        running_opp_reward = torch.zeros(batch_size).cuda()
-
         last_reward = 0
-        policy = []
+        #policy = []
 
-        for t in range(num_steps):
-            if args.append_input:
-                state = torch.cat([state, payout_probs], axis=-1) # payout], axis=-1)
-            # Running policy_old:
-            action = ppo.policy_old.act(state, memory)
+        if args.append_input:
+            state = torch.cat([state, payout_probs], axis=-1) # payout], axis=-1)
 
-            state, reward, info, M = env.step(action)
+        state, reward, opp_reward, M = env.step()
 
-            memory.rewards.append(reward)
-            running_reward += reward.squeeze(-1)
-            running_opp_reward += info.squeeze(-1)
-            last_reward = reward.squeeze(-1)
+        #if i_episode % save_freq == 0 or i_episode == max_episodes: # Record policy for the final episode and at checkpoints
+         #   policy.append(state.cpu().numpy().tolist()) # Taken from Chris Lu notebooks paper plots-Copy2.ipynb
 
-            if i_episode % save_freq == 0 or i_episode == max_episodes: # Record policy for the final episode and at checkpoints
-                policy.append(state.cpu().numpy().tolist()) # Taken from Chris Lu notebooks paper plots-Copy2.ipynb
-
-        ppo.update(memory)
-        memory.clear_memory()
 
         print("=" * 100, flush=True)
 
         print(f"episode: {i_episode}", flush=True)
 
-        print(f"loss: {-running_reward.mean() / num_steps}", flush=True)
+        print(f"loss: {-reward.mean()}", flush=True)
 
         rew_means.append(
             {
-                "rew": (running_reward.mean() / num_steps).item(),
-                "opp_rew": (running_opp_reward.mean() / num_steps).item(),
+                "rew": reward.mean().item(),
+                "opp_rew": opp_reward.mean().item(),
             }
         )
 
-        print(f"opponent loss: {-running_opp_reward.mean() / num_steps}", flush=True)
+        print(f"opponent loss: {-opp_reward.mean()}", flush=True)
 
         if i_episode % save_freq == 0:
-            ppo.save(os.path.join('runs/' + name, f"{i_episode}.pth"))
             with open(os.path.join('runs/' + name, f"out_{i_episode}.json"), "w") as f:
                 json.dump(rew_means, f)
-            with open(os.path.join('runs/' + name + '/policy', f"out_{i_episode}.json"), "w") as f:
-                json.dump(policy, f)
+            #with open(os.path.join('runs/' + name + '/policy', f"out_{i_episode}.json"), "w") as f:
+             #   json.dump(policy, f)
             print(f"SAVING! {i_episode}")
 
-    ppo.save(os.path.join('runs/' + name, f"{i_episode}.pth"))
     with open(os.path.join('runs/' + name, f"out_{i_episode}.json"), "w") as f:
         json.dump(rew_means, f)
-    with open(os.path.join('runs/' + name + '/policy', f"out_{i_episode}.json"), "w") as f:
-        json.dump(policy, f)
+    #with open(os.path.join('runs/' + name + '/policy', f"out_{i_episode}.json"), "w") as f:
+      #  json.dump(policy, f)
     print(f"SAVING! {i_episode}")
