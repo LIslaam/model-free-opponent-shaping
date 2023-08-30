@@ -467,7 +467,7 @@ class SymmetricMetaGames:
 
 
 class NonMfosMetaGames:
-    def __init__(self, b, lr, opp_lr, p1="NL", p2="NL", game="IPD", mmapg_id=None):
+    def __init__(self, b, lr=1, opp_lr=1, p1="NL", p2="NL", game="IPD", mmapg_id=None):
         """
         Opponent can be:
         NL = Naive Learner (gradient updates through environment).
@@ -534,15 +534,20 @@ class NonMfosMetaGames:
             self.init_th_ba = torch.load(f)
             print(self.init_th_ba)
 
-    def reset(self, info=False):
+    def reset(self, p1_th_ba=None, p2_th_ba=None, info=False):
         if self.game == 'random':
             d, self.game_batched, self.payout = random_batched(self.b, batch_size=self.b) # Reset random matrix
         elif self.game == 'randIPD':
             d, self.game_batched, self.payout = random_ipd_batched(self.b, batch_size=self.b) # Reset random matrix
         elif self.game == 'noisyIPD':
             d, self.game_batched, self.payout = noisy_ipd_batched(self.b, batch_size=self.b)
-        self.p1_th_ba = torch.nn.init.normal_(torch.empty((self.b, self.d), requires_grad=True), std=self.std).to(device)
-        self.p2_th_ba = torch.nn.init.normal_(torch.empty((self.b, self.d), requires_grad=True), std=self.std).to(device)
+
+        if p1_th_ba != None and p2_th_ba != None:
+            self.p1_th_ba = p1_th_ba
+            self.p2_th_ba = p2_th_ba
+        else:
+            self.p1_th_ba = torch.nn.init.normal_(torch.empty((self.b, self.d), requires_grad=True), std=self.std).to(device)
+            self.p2_th_ba = torch.nn.init.normal_(torch.empty((self.b, self.d), requires_grad=True), std=self.std).to(device)
 
         if self.p1 == "MAMAML":
             self.p1_th_ba = self.init_th_ba.detach() * torch.ones((self.b, self.d), requires_grad=True).to(device)
@@ -572,6 +577,13 @@ class NonMfosMetaGames:
         return None
 
     def step(self, info=False):
+        if self.game == 'random':
+            d, self.game_batched, self.payout = random_batched(self.b, batch_size=self.b) # Reset random matrix
+        elif self.game == 'randIPD':
+            d, self.game_batched, self.payout = random_ipd_batched(self.b, batch_size=self.b) # Reset random matrix
+        elif self.game == 'noisyIPD':
+            d, self.game_batched, self.payout = noisy_ipd_batched(self.b, batch_size=self.b)
+            
         last_p1_th_ba = self.p1_th_ba.clone()
         last_p2_th_ba = self.p2_th_ba.clone()
         th_ba = [self.p2_th_ba, self.p1_th_ba]

@@ -32,9 +32,9 @@ if __name__ == "__main__":
     betas = (0.9, 0.999)
 
     max_episodes = 1
-    batch_size = 4096
+    batch_size = 5
     random_seed = args.seed
-    num_steps = 100
+    num_steps = 400
     num_tests = 10 # How many times trained policy is tested on game
 
     save_freq = 250

@@ -1,6 +1,7 @@
 runs/*
 model-free-opponent-shaping.code-workspace
 wandb/*
+src/run_exp.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
