@@ -19,6 +19,7 @@ parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
 parser.add_argument("--lr", type=float, default=0.002)
 parser.add_argument("--opp_lr", type=float, default=1)
+parser.add_argument("--rand_opp", type=bool, default=False) # Randomly sample opponent learning rates
 args = parser.parse_args()
 
 
@@ -35,7 +36,7 @@ if __name__ == "__main__":
     max_episodes = 1024
     batch_size =  4096
     random_seed = args.seed
-    num_steps = 400
+    num_steps = 100
 
     save_freq = 512
     name = args.exp_name
@@ -58,7 +59,8 @@ if __name__ == "__main__":
     if args.seed != None:
         torch.manual_seed(random_seed) # Set seed for reproducability.
 
-    env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id, opp_lr=args.opp_lr)
+    env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id, 
+                    opp_lr=args.opp_lr, rand_opp=args.rand_opp)
 
     action_dim = env.d
     state_dim = (env.d * 2)

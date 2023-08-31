@@ -282,7 +282,8 @@ def generate_mamaml(b, d, inner_env, game, inner_lr=1):
 
 
 class MetaGames:
-    def __init__(self, b, opponent="NL", game="IPD", mmapg_id=0, payout=None, opp_lr=1):
+    def __init__(self, b, opponent="NL", game="IPD", mmapg_id=0, payout=None, opp_lr=1, 
+                 rand_opp=False):
         """
         Opponent can be:
         NL = Naive Learner (gradient updates through environment).
@@ -337,6 +338,12 @@ class MetaGames:
         else:
             self.init_th_ba = None
 
+        self.rand_opp = rand_opp # Flag for randomly sampling opponent learning rates
+
+        if self.rand_opp == True: # self.lr to sample a new lr each meta-episode
+            self.lr = torch.reshape(torch.tensor(np.array(np.random.uniform(0.1, 2.5, size=b))), (b,1)).to(device)
+            self.lr = self.lr.repeat((1, 5))
+
     def reset(self, info=False):
         if self.game == 'random':
             d, self.game_batched, self.payout = random_batched(self.b, batch_size=self.b) # Reset random matrix
@@ -354,6 +361,10 @@ class MetaGames:
             state, _, _, M, self.payout = self.step(outer_th_ba)
         except ValueError:
             state, _, _, M = self.step(outer_th_ba)
+
+        if self.rand_opp == True: # self.lr to sample a new lr each meta-episode (element-wise multiplication)
+            self.lr = torch.reshape(torch.tensor(np.array(np.random.uniform(0.1, 2.5, size=self.b))), (self.b,1)).to(device)
+            self.lr = self.lr.repeat((1, 5))
 
         if info:
             try:
