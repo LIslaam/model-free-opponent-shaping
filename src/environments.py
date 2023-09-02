@@ -338,8 +338,7 @@ class MetaGames:
         else:
             self.init_th_ba = None
 
-        self.rand_opp = rand_opp # Flag for randomly sampling opponent learning rates
-
+        self.rand_opp = rand_opp
         if self.rand_opp == True: # self.lr to sample a new lr each meta-episode
             self.lr = torch.reshape(torch.tensor(np.array(np.random.uniform(0.1, 2.5, size=b))), (b,1)).to(device)
             self.lr = self.lr.repeat((1, 5))

@@ -19,6 +19,7 @@ parser.add_argument("--mamaml-id", type=int, default=0)
 parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
 parser.add_argument("--opp_lr", type=float, default=1)
+parser.add_argument("--rand_opp", type=bool, default=False) # Randomly sample opponent learning rates
 args = parser.parse_args()
 
 if __name__ == "__main__":
@@ -41,23 +42,34 @@ if __name__ == "__main__":
 
     aux = Auxiliary().to(device)
 
-    print(f"RUNNING NAME: {'runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed)}")
-    if not os.path.isdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed)):
-        os.mkdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed))
-        with open(os.path.join('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed), 
-                               "commandline_args.txt"), "w") as f:
-            json.dump(args.__dict__, f, indent=2)
+    if args.rand_opp:
+        opplr = str(args.opp_lr).replace('.','_')
+        print(f"RUNNING NAME: {'runs/' + name + '/test_' + args.game  + '_opplr_' + opplr}")
+        if not os.path.isdir('runs/' + name + '/test_' + args.game  + '_opplr_' + opplr):
+            os.mkdir('runs/' + name + '/test_' + args.game  + '_opplr_' + opplr)
+            with open(os.path.join('runs/' + name + '/test_' + args.game  + '_opplr_' + opplr, 
+                                "commandline_args.txt"), "w") as f:
+                json.dump(args.__dict__, f, indent=2)
 
-    if not os.path.isdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed) + '_policy'):
-        os.mkdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed) + '_policy')
-        with open(os.path.join('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed) + '_policy', 
-                               "commandline_args.txt"), "w") as f:
-            json.dump(args.__dict__, f, indent=2)
+    else:
+        print(f"RUNNING NAME: {'runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed)}")
+        if not os.path.isdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed)):
+            os.mkdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed))
+            with open(os.path.join('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed), 
+                                "commandline_args.txt"), "w") as f:
+                json.dump(args.__dict__, f, indent=2)
+
+        #if not os.path.isdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed) + '_policy'):
+         #   os.mkdir('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed) + '_policy')
+          #  with open(os.path.join('runs/' + name + '/test_' + args.game  + '_seed' + str(args.seed) + '_policy', 
+           #                     "commandline_args.txt"), "w") as f:
+            #    json.dump(args.__dict__, f, indent=2)
 
     #################################################
     if args.seed != None:
         torch.manual_seed(random_seed)
-    env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id, opp_lr=args.opp_lr)
+    env = MetaGames(batch_size, opponent=args.opponent, game=args.game, mmapg_id=args.mamaml_id, 
+                    opp_lr=args.opp_lr, rand_opp=args.rand_opp)
     memory = Memory()
     
     action_dim = env.d
@@ -116,10 +128,15 @@ if __name__ == "__main__":
 
         print(f"opponent loss: {-running_opp_reward.mean() / num_steps}", flush=True)
 
-    ppo.save(os.path.join('runs/' + name + '/test_' + args.game + '_seed' + str(args.seed), "eval.pth"))
-    with open(os.path.join('runs/' + name + '/test_' + args.game + '_seed' + str(args.seed), "out_eval.json"), "w") as f:
-        json.dump(rew_means, f)
-    with open(os.path.join('runs/' + name + '/test_' + args.game + '_seed' + str(args.seed) + '_policy', 
-                            f"out_eval.json"), "w") as f:
-        json.dump(policy, f)
+    if args.rand_opp:
+        ppo.save(os.path.join('runs/' + name + '/test_' + args.game + '_opplr_' + opplr, "eval.pth"))
+        with open(os.path.join('runs/' + name + '/test_' + args.game + '_opplr_' + opplr, "out_eval.json"), "w") as f:
+            json.dump(rew_means, f)
+    else:
+        ppo.save(os.path.join('runs/' + name + '/test_' + args.game + '_seed' + str(args.seed), "eval.pth"))
+        with open(os.path.join('runs/' + name + '/test_' + args.game + '_seed' + str(args.seed), "out_eval.json"), "w") as f:
+            json.dump(rew_means, f)
+    #with open(os.path.join('runs/' + name + '/test_' + args.game + '_seed' + str(args.seed) + '_policy', 
+     #                       f"out_eval.json"), "w") as f:
+      #  json.dump(policy, f)
     print(f"SAVING!")

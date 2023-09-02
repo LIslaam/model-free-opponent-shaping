@@ -165,7 +165,7 @@ class PPORecurrent:
         self.policy.eval()
 
     def update(self, memory):
-        wandb.init()
+        #wandb.init()
         # Monte Carlo estimate of rewards:
         rewards = []
         discounted_reward = 0
@@ -221,6 +221,7 @@ class PPORecurrent:
             loss.mean().backward()
             self.optimizer.step()
 
+        """
         wandb.log({
             'total_loss': loss.mean(), 
             'advantages': advantages.mean(), 
@@ -228,6 +229,7 @@ class PPORecurrent:
             'surr2': surr2.mean(),
             #'std': self.policy.std.item(),
             'entropy_loss': entropy_loss,})
+        """
 
         # print('STD: ', self.policy.std)
         # Copy new weights into old policy:

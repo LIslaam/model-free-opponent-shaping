@@ -19,6 +19,7 @@ parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
 parser.add_argument("--opp_lr", type=float, default=1)
 parser.add_argument("--lr", type=float, default=0.02)
+parser.add_argument("--rand_opp", type=bool, default=False) # Randomly sample opponent learning rates
 args = parser.parse_args()
 
 #### IF append_input, we input the last reward
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     lr = args.lr # 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 4096 #2048
+    max_episodes = 1024 #4096 #2048
     batch_size = 128
     random_seed = args.seed
     num_steps = 100
