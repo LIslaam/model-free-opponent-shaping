@@ -38,27 +38,39 @@ class RecurrentNet(nn.Module):
         self.batch_size = batch_size
         self.hidden_size = hidden_size
         self.lstm_size = 32
-        # self.gru = nn.GRU(input_size=state_dim, hidden_size=self.lstm_size)
+        self.gru = nn.GRU(input_size=state_dim, hidden_size=self.lstm_size)
         self.lstm = nn.LSTM(input_size=state_dim, hidden_size=self.lstm_size)
         self.output = nn.Sequential(
             nn.Linear(self.lstm_size, self.hidden_size),
             nn.Tanh(),
             nn.Linear(self.hidden_size, output_dim))
 
+        self.model = 'LSTM' # 'GRU' # I hardcode this
+        print(self.model)
+
     def reset_hidden(self):
-        self.hidden_cell = (torch.zeros(1, self.batch_size, self.lstm_size, device=device),
-                            torch.zeros(1, self.batch_size, self.lstm_size, device=device))
-        # self.hidden_cell = torch.zeros(1, self.batch_size, self.lstm_size, device=device)
+        if self.model == 'LSTM':
+            self.hidden_cell = (torch.zeros(1, self.batch_size, self.lstm_size, device=device),
+                                torch.zeros(1, self.batch_size, self.lstm_size, device=device))
+        elif self.model == 'GRU':
+            self.hidden_cell = torch.zeros(1, self.batch_size, self.lstm_size, device=device)
     
     def forward(self, x):
         x = x.unsqueeze(0)
-        _, self.hidden_cell = self.lstm(x, self.hidden_cell)
-        out = self.output(self.hidden_cell[0][-1])
+        if self.model == 'LSTM':
+            _, self.hidden_cell = self.lstm(x, self.hidden_cell) #LSTM
+            out = self.output(self.hidden_cell[0][-1])
+        elif self.model == 'GRU':
+            _, self.hidden_cell = self.gru(x, self.hidden_cell)
+            out = self.output(self.hidden_cell[-1])
         return out
 
     def eval(self, x):
         # x = x.unsqueeze(0)
-        out, self.hidden_cell = self.lstm(x, self.hidden_cell)
+        if self.model == 'LSTM':
+            out, self.hidden_cell = self.lstm(x, self.hidden_cell) #LSTM
+        elif self.model == 'GRU':
+            out, self.hidden_cell = self.gru(x, self.hidden_cell)
         out = self.output(out)
         return out
 
