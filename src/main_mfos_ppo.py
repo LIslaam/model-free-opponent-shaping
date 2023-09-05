@@ -38,7 +38,7 @@ if __name__ == "__main__":
     lr = args.lr # 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 1024#2048
+    max_episodes = 2048
     batch_size =  4096
     random_seed = args.seed
     num_steps = 100
@@ -123,7 +123,6 @@ if __name__ == "__main__":
 
             #if i_episode % save_freq == 0 or i_episode == max_episodes: # Record policy for the final episode and at checkpoints
              #   policy.append(state.cpu().numpy().tolist()) # Taken from Chris Lu notebooks paper plots-Copy2.ipynb
-
 
         if args.collect_data:
             # Save the state-action pair for the batch at the end of every meta-episode
