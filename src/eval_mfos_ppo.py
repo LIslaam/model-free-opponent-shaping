@@ -44,10 +44,10 @@ if __name__ == "__main__":
 
     if args.rand_opp:
         opplr = str(args.opp_lr).replace('.','_')
-        print(f"RUNNING NAME: {'runs/' + name + '/test_' + args.game  + '_opplr_' + opplr}")
-        if not os.path.isdir('runs/' + name + '/test_' + args.game  + '_opplr_' + opplr):
-            os.mkdir('runs/' + name + '/test_' + args.game  + '_opplr_' + opplr)
-            with open(os.path.join('runs/' + name + '/test_' + args.game  + '_opplr_' + opplr, 
+        print(f"RUNNING NAME: {'runs/' + name + '/test_clone' + args.game  + '_opplr_' + opplr}")
+        if not os.path.isdir('runs/' + name + '/test_clone' + args.game  + '_opplr_' + opplr):
+            os.mkdir('runs/' + name + '/test_clone' + args.game  + '_opplr_' + opplr)
+            with open(os.path.join('runs/' + name + '/test_clone' + args.game  + '_opplr_' + opplr, 
                                 "commandline_args.txt"), "w") as f:
                 json.dump(args.__dict__, f, indent=2)
 
@@ -129,8 +129,8 @@ if __name__ == "__main__":
         print(f"opponent loss: {-running_opp_reward.mean() / num_steps}", flush=True)
 
     if args.rand_opp:
-        ppo.save(os.path.join('runs/' + name + '/test_' + args.game + '_opplr_' + opplr, "eval.pth"))
-        with open(os.path.join('runs/' + name + '/test_' + args.game + '_opplr_' + opplr, "out_eval.json"), "w") as f:
+        ppo.save(os.path.join('runs/' + name + '/test_clone' + args.game + '_opplr_' + opplr, "eval.pth"))
+        with open(os.path.join('runs/' + name + '/test_clone' + args.game + '_opplr_' + opplr, "out_eval.json"), "w") as f:
             json.dump(rew_means, f)
     else:
         ppo.save(os.path.join('runs/' + name + '/test_' + args.game + '_seed' + str(args.seed), "eval.pth"))

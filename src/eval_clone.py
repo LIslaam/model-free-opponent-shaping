@@ -25,7 +25,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
                     ###################################
-    batch_size = 4096
+    batch_size = 128 # 4096 for PPO # Make sure this matches the batch_size of the original file!
     random_seed = args.seed
     num_steps = 100
 
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         print(f"RUNNING NAME: {'runs/' + name + '/test_clone' + args.game  + '_opplr_' + opplr}")
         if not os.path.isdir('runs/' + name + '/test_clone' + args.game  + '_opplr_' + opplr):
             os.mkdir('runs/' + name + '/test_clone' + args.game  + '_opplr_' + opplr)
-            with open(os.path.join('runs/' + name + '/test_' + args.game  + '_opplr_' + opplr, 
+            with open(os.path.join('runs/' + name + '/test_clone' + args.game  + '_opplr_' + opplr, 
                                 "commandline_args.txt"), "w") as f:
                 json.dump(args.__dict__, f, indent=2)
     else:
@@ -51,9 +51,10 @@ if __name__ == "__main__":
                     opp_lr=args.opp_lr, rand_opp=args.rand_opp)
     
 
-    state_data, action_data = get_data(directory)
+    # Running behavioural clone
+    state_data, action_data = get_data(directory, int(args.checkpoint), batch_size)
     clone = BehaviouralCloning(state_data, action_data)
-    model = clone.run() # Save model to input into BehaviouralCloning.evaluate()
+    clone.run()
 
     # ONLY ONE EPISODE
     try:
@@ -71,8 +72,10 @@ if __name__ == "__main__":
     for t in range(num_steps):
         if args.append_input:
             state = torch.cat([state, payout_probs.to(device)], axis=-1) #payout], axis=-1)
-        # Running policy_old:
-        state, reward, info, M = env.step(action) # Same action each time
+        
+        action = clone.evaluate(state[:, :5]) # Get action from behavioural clone model
+        state, reward, info, M = env.step(action)
+        #print(state[0])
 
         running_reward += reward.squeeze(-1)
         running_opp_reward += info.squeeze(-1)
