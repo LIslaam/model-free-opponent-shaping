@@ -52,9 +52,8 @@ if __name__ == "__main__":
     
 
     state_data, action_data = get_data(directory)
-    clone = BehaviouralCloning(state_data, action_data) # Getting the action from behavioural clone
-    action = clone.run()
-    print(action, action.size())
+    clone = BehaviouralCloning(state_data, action_data)
+    model = clone.run() # Save model to input into BehaviouralCloning.evaluate()
 
     # ONLY ONE EPISODE
     try:

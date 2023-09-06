@@ -8,7 +8,7 @@ import json
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def get_data(file, batch_size=4096, episodes=2048, append_input=False):
+def get_data(file, episodes, batch_size, append_input=False):
     data = json.load(open(file))
     if append_input == True:
         state_data = np.zeros((batch_size*episodes, 7))
@@ -33,6 +33,9 @@ class NeuralNet(nn.Module):
         self.fc1 = nn.Linear(state_dim, 64)
         self.fc2 = nn.Linear(64, action_dim)
 
+    def __enter__(self):
+        return self
+
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = self.fc2(x)
@@ -40,15 +43,20 @@ class NeuralNet(nn.Module):
 
 
 class BehaviouralCloning:
-    def __init__(self, state_data, action_data):
+    def __init__(self, state_data, action_data, batch_size=4096):
         super(BehaviouralCloning, self).__init__()
         self.state_data = state_data
         self.action_data = action_data
+        self.batch_size = batch_size
+        self.state_dim = self.state_data.shape[1]
+        self.action_dim = self.action_data.shape[1]
+
+        # Create the model
+        self.model = NeuralNet(self.state_dim, self.action_dim)
 
     def run(self):
         # Hyperparameters
-        state_dim = self.state_data.shape[1]
-        action_dim = self.action_data.shape[1]
+        model = self.model
         learning_rate = 0.001
         num_epochs = 100
 
@@ -65,10 +73,7 @@ class BehaviouralCloning:
 
         # Create a PyTorch DataLoader for training (optional but useful for batch processing)
         train_dataset = TensorDataset(state_train_tensor, action_train_tensor)
-        train_loader = DataLoader(train_dataset, batch_size=4096, shuffle=True)
-
-        # Create the model
-        model = NeuralNet(state_dim, action_dim)
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
         # Define loss and optimizer
         criterion = nn.MSELoss()
@@ -93,12 +98,26 @@ class BehaviouralCloning:
                 val_loss = criterion(val_predictions, action_val_tensor)
                 print(f"Validation Loss: {val_loss.item()}")
 
+        model.eval()
+        with torch.no_grad():
             # Evaluation on the test set (for final evaluation)
             test_predictions = model(state_test_tensor)
             test_loss = criterion(test_predictions, action_test_tensor)
             print(f"Test Loss: {test_loss.item()}")
 
-            print("action:", action_val_tensor)
+    
+    def evaluate(self, state):
+        self.model.eval()
+        #with torch.no_grad:
+        predictions = self.model(state)
 
-        return action_val_tensor
+        return predictions
 
+
+
+
+state_data, action_data = get_data("runs/DATA_COLLECTION_mfos_ppo_input_ipd_randopp_nl/state_action/out_512.json", 512, 4096)
+clone = BehaviouralCloning(state_data, action_data)
+clone.run()
+print (clone.evaluate(torch.Tensor([0.1231,0.5,0,0.5,0.5])))
+print (clone.evaluate(torch.Tensor([0.5,0.5,0.5,0.5,0.5], [0.1231,0.5,0,0.5,0.5])))
