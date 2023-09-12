@@ -13,7 +13,7 @@ parser.add_argument("--game", type=str, required=True)
 parser.add_argument("--opponent", type=str, required=True)
 parser.add_argument("--entropy", type=float, default=0.01)
 parser.add_argument("--exp_name", type=str, default="")
-parser.add_argument("--checkpoint", type=str, default="")
+parser.add_argument("--checkpoint", type=str, required=True)
 parser.add_argument("--mamaml-id", type=int, default=0)
 parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
@@ -25,7 +25,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
                     ###################################
-    batch_size = 128 # 4096 for PPO # Make sure this matches the batch_size of the original file!
+    batch_size = 4096 # 4096 for PPO # Make sure this matches the batch_size of the original file!
     random_seed = args.seed
     num_steps = 100
 
@@ -41,8 +41,12 @@ if __name__ == "__main__":
                                 "commandline_args.txt"), "w") as f:
                 json.dump(args.__dict__, f, indent=2)
     else:
-        raise NotImplementedError
-
+        print(f"RUNNING NAME: {'runs/' + name + '/test_clone' + args.game  + '_seed' + str(args.seed)}")
+        if not os.path.isdir('runs/' + name + '/test_clone' + args.game  + '_seed' + str(args.seed)):
+            os.mkdir('runs/' + name + '/test_clone' + args.game  + '_seed' + str(args.seed))
+            with open(os.path.join('runs/' + name + '/test_clone' + args.game  + '_seed' + str(args.seed), 
+                                "commandline_args.txt"), "w") as f:
+                json.dump(args.__dict__, f, indent=2)
     directory = 'runs/' + name + '/state_action/out_' + str(args.checkpoint) + '.json'
 
     if args.seed != None:
@@ -52,7 +56,7 @@ if __name__ == "__main__":
     
 
     # Running behavioural clone
-    state_data, action_data = get_data(directory, int(args.checkpoint), batch_size)
+    state_data, action_data = get_data(directory, int(args.checkpoint), batch_size, append_input=args.append_input)
     clone = BehaviouralCloning(state_data, action_data)
     clone.run()
 
@@ -73,9 +77,15 @@ if __name__ == "__main__":
         if args.append_input:
             state = torch.cat([state, payout_probs.to(device)], axis=-1) #payout], axis=-1)
         
-        action = clone.evaluate(state[:, :5]) # Get action from behavioural clone model
+        if args.append_input:
+            action = clone.evaluate(torch.cat((state[:, :5],state[:, -2:]), -1))
+        else:
+            action = clone.evaluate(state[:, :5]) # Get action from behavioural clone model
+        
         state, reward, info, M = env.step(action)
-        #print(state[0])
+
+        print(state[:2])
+        print(action[:2])
 
         running_reward += reward.squeeze(-1)
         running_opp_reward += info.squeeze(-1)
@@ -97,5 +107,8 @@ if __name__ == "__main__":
 
     if args.rand_opp:
         with open(os.path.join('runs/' + name + '/test_clone' + args.game + '_opplr_' + opplr, "out_eval.json"), "w") as f:
+            json.dump(rew_means, f)
+    else:
+        with open(os.path.join('runs/' + name + '/test_clone' + args.game + '_seed' + str(args.seed), "out_eval.json"), "w") as f:
             json.dump(rew_means, f)
     print(f"SAVING!")
