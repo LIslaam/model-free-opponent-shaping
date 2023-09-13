@@ -35,7 +35,6 @@ if __name__ == "__main__":
     batch_size = 4096
     random_seed = args.seed
     num_steps = 100
-    num_tests = 10 # How many times trained policy is tested on game
 
     save_freq = 250
     name = args.exp_name

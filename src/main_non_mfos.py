@@ -96,6 +96,7 @@ if __name__ == "__main__":
 
 
 ############ EVAL SECTION ###############
+print("Evaluating on IPD")
 env = NonMfosMetaGames(batch_size, p1='STATIC', p2='STATIC', game='IPD')
 env.reset(p1_th_ba=policy1, p2_th_ba=policy2)
 running_rew_0 = torch.zeros(batch_size).cuda()

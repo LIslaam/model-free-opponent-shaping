@@ -52,8 +52,11 @@ class RecurrentNet(nn.Module):
         if self.model == 'LSTM':
             self.hidden_cell = (torch.zeros(1, self.batch_size, self.lstm_size, device=device),
                                 torch.zeros(1, self.batch_size, self.lstm_size, device=device))
+            #nn.init.orthogonal_(self.hidden_cell[0]) # Orthogonal initialisation
+            #nn.init.orthogonal_(self.hidden_cell[1]) # Orthogonal initialisation
         elif self.model == 'GRU':
             self.hidden_cell = torch.zeros(1, self.batch_size, self.lstm_size, device=device)
+            #nn.init.orthogonal_(self.hidden_cell) # Orthogonal initialisation
     
     def forward(self, x):
         x = x.unsqueeze(0)
@@ -162,6 +165,7 @@ class PPORecurrent:
 
         self.policy = ActorCriticRecurrent(state_dim, action_dim, batch_size, hidden_size).to(device)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr, betas=betas)
+        #self.scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.9) # Adding learning rate annealing
 
         self.policy_old = ActorCriticRecurrent(state_dim, action_dim, batch_size, hidden_size).to(device)
         self.policy_old.load_state_dict(self.policy.state_dict())
@@ -228,10 +232,13 @@ class PPORecurrent:
             surr2 = torch.clamp(ratios, 1-self.eps_clip, 1+self.eps_clip) * advantages
             loss = -torch.min(surr1, surr2) + 0.5*self.MseLoss(state_values, rewards) - self.entropy_bonus * dist_entropy
             entropy_loss = (self.entropy_bonus * dist_entropy).mean()
+
             # take gradient step
             self.optimizer.zero_grad()
             loss.mean().backward()
+            #nn.utils.clip_grad_norm_(self.policy.parameters(), 1.0) # ADDING GRAD NORM CLIPPING
             self.optimizer.step()
+        #self.scheduler.step() # Adding learning rate annealing
 
         """
         wandb.log({

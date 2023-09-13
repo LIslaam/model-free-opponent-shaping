@@ -43,7 +43,7 @@ if __name__ == "__main__":
     random_seed = args.seed
     num_steps = 100
 
-    save_freq = 256
+    save_freq = 512
     name = args.exp_name
 
     aux = Auxiliary().to(device)
@@ -128,12 +128,20 @@ if __name__ == "__main__":
         if args.collect_data:
             # Save the state-action pair for the batch at the end of every meta-episode
             for i in range(batch_size):
-                state_action_data.append(
-                    {
-                        'state_agent' + str(i) : inv_sigmoid(state[i][:5]).tolist(),
-                        'action_agent' + str(i) : action[i].tolist()
-                    }
-                )
+                if args.append_input == True:
+                    state_action_data.append(
+                        {
+                            'state_agent' + str(i) : torch.cat((state[i][:5],state[i][-2:]), -1).tolist(), # Appending reward input
+                            'action_agent' + str(i) : action[i].tolist()
+                        }
+                    )
+                else:
+                    state_action_data.append(
+                        {
+                            'state_agent' + str(i) : state[i][:5].tolist(),
+                            'action_agent' + str(i) : action[i].tolist()
+                        }
+                    )
 
         ppo.update(memory)
         memory.clear_memory()

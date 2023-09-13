@@ -38,8 +38,8 @@ if __name__ == "__main__":
     lr = args.lr # 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 2048
-    batch_size =  4096
+    max_episodes = 1024 #2048
+    batch_size = 4096
     random_seed = args.seed
     num_steps = 100
 
@@ -113,9 +113,11 @@ if __name__ == "__main__":
             if args.append_input:
                 state = torch.cat([state, payout_probs], axis=-1) # payout], axis=-1)
             # Running policy_old:
+
             action = ppo.policy_old.act(state, memory)
 
-            state, reward, info, M = env.step(action)
+            state, reward, info, M = env.step(action) # This state has size (batch, 10), but we append the payout at each step (if chosen) before putting into PPO
+
             memory.rewards.append(reward)
             running_reward += reward.squeeze(-1)
             running_opp_reward += info.squeeze(-1)
@@ -127,12 +129,20 @@ if __name__ == "__main__":
         if args.collect_data:
             # Save the state-action pair for the batch at the end of every meta-episode
             for i in range(batch_size):
-                state_action_data.append(
-                    {
-                        'state_agent' + str(i) : inv_sigmoid(state[i][:5]).tolist(),
-                        'action_agent' + str(i) : action[i].tolist()
-                    }
-                )
+                if args.append_input == True:
+                    state_action_data.append(
+                        {
+                            'state_agent' + str(i) : torch.cat((state[i][:5],state[i][-2:]), -1).tolist(), # Appending auxilliary input
+                            'action_agent' + str(i) : action[i].tolist()
+                        }
+                    )
+                else:
+                    state_action_data.append(
+                        {
+                            'state_agent' + str(i) : state[i][:5].tolist(),
+                            'action_agent' + str(i) : action[i].tolist()
+                        }
+                    )
 
         ppo.update(memory)
         memory.clear_memory()
