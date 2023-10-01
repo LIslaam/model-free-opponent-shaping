@@ -33,7 +33,7 @@ class MemoryRecurrent:
         del self.latent_v_s[:]
 
 class RecurrentNet(nn.Module):
-    def __init__(self, state_dim, output_dim, batch_size, hidden_size=256):
+    def __init__(self, state_dim, output_dim, batch_size, hidden_size=64):
         super(RecurrentNet, self).__init__()
         self.batch_size = batch_size
         self.hidden_size = hidden_size
@@ -42,6 +42,7 @@ class RecurrentNet(nn.Module):
         self.lstm = nn.LSTM(input_size=state_dim, hidden_size=self.lstm_size)
         self.output = nn.Sequential(
             nn.Linear(self.lstm_size, self.hidden_size),
+            #nn.LeakyReLU(),
             nn.Tanh(),
             nn.Linear(self.hidden_size, output_dim))
 

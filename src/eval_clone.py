@@ -25,7 +25,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
                     ###################################
-    batch_size = 4096 # 4096 for PPO # Make sure this matches the batch_size of the original file!
+    batch_size = 8192 # 4096 for PPO # Make sure this matches the batch_size of the original file!
     random_seed = args.seed
     num_steps = 100
 
@@ -84,8 +84,8 @@ if __name__ == "__main__":
         
         state, reward, info, M = env.step(action)
 
-        print(state[:2])
-        print(action[:2])
+        #print(state[:2])
+        #print(action[:2])
 
         running_reward += reward.squeeze(-1)
         running_opp_reward += info.squeeze(-1)

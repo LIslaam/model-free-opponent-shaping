@@ -32,9 +32,6 @@ if METHOD == 'supervised':
                 action_data[j+cycle][:] = data[j+cycle]['action_agent'+str(j)]
             cycle += batch_size
 
-        print((torch.nan_to_num(torch.Tensor(state_data)))[:2])
-        print((torch.nan_to_num(torch.Tensor(action_data)))[:2])
-
         return (torch.nan_to_num(torch.Tensor(state_data))), (torch.nan_to_num(torch.Tensor(action_data)))
 
 
@@ -44,9 +41,8 @@ if METHOD == 'supervised':
             #self.flatten = nn.Flatten()
             self.linear_relu_stack = nn.Sequential(
                 nn.Linear(state_dim, 128),
-                nn.ReLU(),
                 nn.Linear(128, 128),
-                nn.ReLU(),
+                nn.Dropout(p=0.75),
                 nn.Linear(128, action_dim), # Matching states to actions
             )
 
@@ -101,9 +97,13 @@ if METHOD == 'supervised':
             state_val_tensor = F.normalize(state_val_tensor, p=2, dim=0)
             state_test_tensor = F.normalize(state_test_tensor, p=2, dim=0)
 
+            # Define regularization strength (lambda)
+            l1_lambda = 0.001
+            l2_lambda = 0.001
+
             # Define loss and optimizer
             criterion = nn.MSELoss()
-            optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+            optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=l2_lambda)
             scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.1) # Adding learning rate annealing
 
             # Training loop
@@ -116,6 +116,10 @@ if METHOD == 'supervised':
                 loss.backward()
                 optimizer.step()
                 scheduler.step()
+                # Apply L1 regularization to specific layers
+                for layer in model.children():
+                    if isinstance(layer, nn.Linear):
+                        layer.weight.register_hook(lambda grad: l1_lambda * torch.sign(grad))
                 # Print training loss for this epoch
                 print(f"Epoch [{epoch + 1}/{num_epochs}] Loss: {loss.item()}")
 
@@ -211,7 +215,7 @@ elif METHOD == 'RNN':
         def run(self):
             # Hyperparameters
             learning_rate = 0.001
-            num_epochs = 100
+            num_epochs = 1000
 
             # Create the RNN model
             model = self.model
