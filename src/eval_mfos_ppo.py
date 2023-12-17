@@ -11,7 +11,7 @@ import wandb
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def eval_ppo(args, game, opp_lr):
+def eval_ppo(args, game, opp_lr, checkpoint):
             ##############################
     K_epochs = 4  # update policy for K epochs
 
@@ -68,7 +68,7 @@ def eval_ppo(args, game, opp_lr):
     ppo = PPO(state_dim, action_dim, lr, betas, gamma, K_epochs, eps_clip, args.entropy)
 
     directory = "runs/" + name + '/'
-    checkpoint_path = directory + "{}.pth".format(args.checkpoint) # max episodes
+    checkpoint_path = directory + "{}.pth".format(checkpoint) # max episodes
     print("loading network from : " + checkpoint_path)
 
     ppo.load(checkpoint_path)
@@ -102,12 +102,12 @@ def eval_ppo(args, game, opp_lr):
         policy.append(state.cpu().numpy().tolist()) # Taken from Chris Lu notebooks paper plots-Copy2.ipynb
         
         for i, value in enumerate([*map(mean, zip(*state.cpu().numpy().tolist()))][:5]):   
-            wandb.log({"eval_"+game+"_opp_lr="+opp_lr+"_state_"+str(i): value})
+            wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_state_"+str(i): value})
         for i, value in enumerate([*map(mean, zip(*action.cpu().numpy().tolist()))][:5]):   
-            wandb.log({"eval_"+game+"_opp_lr="+opp_lr+"_action_"+str(i): value})
+            wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_action_"+str(i): value})
 
-        wandb.log({"eval_"+game+"_opp_lr="+opp_lr+"_loss": -running_reward.mean() / num_steps, 
-                   "eval_"+game+"_opp_lr="+opp_lr+"_loss": -running_opp_reward.mean() / num_steps})
+        wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_loss": -running_reward.mean() / num_steps, 
+                   "eval_"+game+"_opp_lr="+str(opp_lr)+"_loss": -running_opp_reward.mean() / num_steps})
 
 
         memory.clear_memory()

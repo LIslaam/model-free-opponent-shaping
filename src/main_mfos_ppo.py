@@ -17,7 +17,7 @@ parser.add_argument("--game", type=str, required=True)
 parser.add_argument("--opponent", type=str, required=True)
 parser.add_argument("--entropy", type=float, default=0.01)
 parser.add_argument("--exp_name", type=str, default="")
-parser.add_argument("--checkpoint", type=str, default="")
+parser.add_argument("--checkpoint", type=str, default=None)
 parser.add_argument("--mamaml-id", type=int, default=0)
 parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--append_input", type=bool, default=False)
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     lr = args.lr # 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 1024 #2048
+    max_episodes = 3 #2048
     batch_size = args.batch_size #4096
     random_seed = args.seed
     num_steps = 100
@@ -208,4 +208,4 @@ if __name__ == "__main__":
 
     for eval_game in ["IPD", "random", "randIPD", "noisy_IPD"]:
         for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
-            eval_ppo(args, game=eval_game, opp_lr=lr)
+            eval_ppo(args, game=eval_game, opp_lr=lr, checkpoint=max_episodes)
