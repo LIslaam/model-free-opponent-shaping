@@ -3,34 +3,8 @@
 for s in {0..4..1}; do
   python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_noisyipd_x0_05_nl_seed"$s" --seed="$s"
 done
-for s in {0..3..1}; do
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_noisyipd_opplr_2_5_seed"$s" --seed="$s" --opp_lr=2.5
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_noisyipd_opplr_2_seed"$s" --seed="$s" --opp_lr=2
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_noisyipd_opplr_1_5_seed"$s" --seed="$s" --opp_lr=1.5
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_noisyipd_opplr_1_seed"$s" --seed="$s" --opp_lr=1
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_noisyipd_opplr_0_5_seed"$s" --seed="$s" --opp_lr=0.5
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_noisyipd_opplr_0_05_seed"$s" --seed="$s" --opp_lr=0.05
+for s in {0..2..1}; do
 
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_noisyipd_opplr_2_5_seed"$s" --seed="$s" --opp_lr=2.5
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_noisyipd_opplr_2_seed"$s" --seed="$s" --opp_lr=2
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_noisyipd_opplr_1_5_seed"$s" --seed="$s" --opp_lr=1.5
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_noisyipd_opplr_1_seed"$s" --seed="$s" --opp_lr=1
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_noisyipd_opplr_0_5_seed"$s" --seed="$s" --opp_lr=0.5
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_noisyipd_opplr_0_05_seed"$s" --seed="$s" --opp_lr=0.05
-
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_input_noisyipd_opplr_2_5_seed"$s" --seed="$s" --opp_lr=2.5 --append_input=True
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_input_noisyipd_opplr_2_seed"$s" --seed="$s" --opp_lr=2 --append_input=True
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_input_noisyipd_opplr_1_5_seed"$s" --seed="$s" --opp_lr=1.5 --append_input=True
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_input_noisyipd_opplr_1_seed"$s" --seed="$s" --opp_lr=1 --append_input=True
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_input_noisyipd_opplr_0_5_seed"$s" --seed="$s" --opp_lr=0.5 --append_input=True
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_input_noisyipd_opplr_0_05_seed"$s" --seed="$s" --opp_lr=0.05 --append_input=True
-
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_input_noisyipd_opplr_2_5_seed"$s" --seed="$s" --opp_lr=2.5 --append_input=True
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_input_noisyipd_opplr_2_seed"$s" --seed="$s" --opp_lr=2 --append_input=True
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_input_noisyipd_opplr_1_5_seed"$s" --seed="$s" --opp_lr=1.5 --append_input=True
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_input_noisyipd_opplr_1_seed"$s" --seed="$s" --opp_lr=1 --append_input=True
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_input_noisyipd_opplr_0_5_seed"$s" --seed="$s" --opp_lr=0.5 --append_input=True
-  python3 src/main_mfos_rnn.py --game=noisyIPD --opponent=NL --exp_name=mfos_rnn_input_noisyipd_opplr_0_05_seed"$s" --seed="$s" --opp_lr=0.05 --append_input=True
 done
 
 #python3 src/main_mfos_rnn.py --game=IPD --opponent=NL --exp_name=DATA_COLLECTION_mfos_newrnn_input_ipd_randopp_nl --rand_opp=True --seed=5 --append_input=True --collect_data=True

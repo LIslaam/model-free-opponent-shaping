@@ -3,6 +3,7 @@ import torch
 from ppo import PPO, Memory
 from environments import MetaGames
 from ga import Auxiliary
+from statistics import mean
 import os
 import argparse
 import json
@@ -55,7 +56,7 @@ def eval_ppo(args, game, opp_lr):
     #################################################
     if args.seed != None:
         torch.manual_seed(random_seed)
-    env = MetaGames(batch_size, opponent=args.opponent, eval_game=game, mmapg_id=args.mamaml_id, 
+    env = MetaGames(batch_size, opponent=args.opponent, game=game, mmapg_id=args.mamaml_id, 
                     opp_lr=opp_lr, rand_opp=args.rand_opp)
     memory = Memory()
     
@@ -100,8 +101,14 @@ def eval_ppo(args, game, opp_lr):
 
         policy.append(state.cpu().numpy().tolist()) # Taken from Chris Lu notebooks paper plots-Copy2.ipynb
         
-        wandb.log({"eval_"+game+"_opp_lr="+opp_lr+"_state": state.cpu().numpy().tolist()})
-        wandb.log({"eval_"+game+"_opp_lr="+opp_lr+"_action": action.cpu().numpy().tolist()})
+        for i, value in enumerate([*map(mean, zip(*state.cpu().numpy().tolist()))][:5]):   
+            wandb.log({"eval_"+game+"_opp_lr="+opp_lr+"_state_"+str(i): value})
+        for i, value in enumerate([*map(mean, zip(*action.cpu().numpy().tolist()))][:5]):   
+            wandb.log({"eval_"+game+"_opp_lr="+opp_lr+"_action_"+str(i): value})
+
+        wandb.log({"eval_"+game+"_opp_lr="+opp_lr+"_loss": -running_reward.mean() / num_steps, 
+                   "eval_"+game+"_opp_lr="+opp_lr+"_loss": -running_opp_reward.mean() / num_steps})
+
 
         memory.clear_memory()
 

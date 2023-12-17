@@ -8,6 +8,7 @@ import json
 import wandb
 from utils.setup_wandb import setup_wandb
 from eval_mfos_ppo import eval_ppo
+from statistics import mean
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -173,11 +174,15 @@ if __name__ == "__main__":
         )
 
         print(f"opponent loss: {-running_opp_reward.mean() / num_steps}", flush=True)
-        import pdb; pdb.set_trace()
-        wandb.log({"train_reward": running_reward.mean() / num_steps, 
-                   "train_opp_reward": running_opp_reward.mean() / num_steps})
-        wandb.log({"train_mean_state": store_state})
-        wandb.log({"train_mean_action": store_action})
+
+        wandb.log({"train_loss": -running_reward.mean() / num_steps, 
+                   "train_opp_loss": -running_opp_reward.mean() / num_steps})
+        
+        for i, value in enumerate([*map(mean, zip(*store_state))][:5]):   
+            wandb.log({"train_mean_state_"+str(i): value})
+        for i, value in enumerate([*map(mean, zip(*store_action))][:5]):   
+            wandb.log({"train_mean_action_"+str(i): value})
+
 
         if i_episode % save_freq == 0:
             ppo.save(os.path.join('runs/' + name, f"{i_episode}.pth"))
@@ -203,4 +208,4 @@ if __name__ == "__main__":
 
     for eval_game in ["IPD", "random", "randIPD", "noisy_IPD"]:
         for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
-            eval.ppo(args, game=eval_game, opp_lr=lr)
+            eval_ppo(args, game=eval_game, opp_lr=lr)
