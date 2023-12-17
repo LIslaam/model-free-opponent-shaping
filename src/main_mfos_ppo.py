@@ -5,6 +5,9 @@ from ga import Auxiliary
 import os
 import argparse
 import json
+import wandb
+from utils.setup_wandb import setup_wandb
+from eval_mfos_ppo import eval_ppo
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -21,7 +24,13 @@ parser.add_argument("--lr", type=float, default=0.002)
 parser.add_argument("--opp_lr", type=float, default=1)
 parser.add_argument("--rand_opp", type=bool, default=False) # Randomly sample opponent learning rates
 parser.add_argument("--collect_data", type=bool, default=False)
+parser.add_argument("--batch_size", type=int, default=4096)
+
+parser.add_argument("--eval_game", type=str, default="IPD")
+parser.add_argument("--eval_opp_lr", type=float, default=1)
 args = parser.parse_args()
+
+setup_wandb(vars(args))
 
 
 def inv_sigmoid(x):
@@ -39,7 +48,7 @@ if __name__ == "__main__":
     betas = (0.9, 0.999)
 
     max_episodes = 1024 #2048
-    batch_size = 4096
+    batch_size = args.batch_size #4096
     random_seed = args.seed
     num_steps = 100
 
@@ -78,7 +87,6 @@ if __name__ == "__main__":
     if args.append_input:
         state_dim = (env.d * 2) + 2 # Changed way state is input
 
-
     memory = Memory()
     ppo = PPO(state_dim, action_dim, lr, betas, gamma, K_epochs, eps_clip, args.entropy)
 
@@ -108,6 +116,8 @@ if __name__ == "__main__":
 
         last_reward = 0
         policy = []
+        store_state = None
+        store_action = None
 
         for t in range(num_steps):
             if args.append_input:
@@ -123,7 +133,9 @@ if __name__ == "__main__":
             running_opp_reward += info.squeeze(-1)
             last_reward = reward.squeeze(-1)
 
-            #if i_episode % save_freq == 0 or i_episode == max_episodes: # Record policy for the final episode and at checkpoints
+            if t==num_steps-1: # Record policy for the final episode
+                store_state = state.cpu().numpy().tolist()
+                store_action = action.cpu().numpy().tolist()
              #   policy.append(state.cpu().numpy().tolist()) # Taken from Chris Lu notebooks paper plots-Copy2.ipynb
 
         if args.collect_data:
@@ -161,6 +173,11 @@ if __name__ == "__main__":
         )
 
         print(f"opponent loss: {-running_opp_reward.mean() / num_steps}", flush=True)
+        import pdb; pdb.set_trace()
+        wandb.log({"train_reward": running_reward.mean() / num_steps, 
+                   "train_opp_reward": running_opp_reward.mean() / num_steps})
+        wandb.log({"train_mean_state": store_state})
+        wandb.log({"train_mean_action": store_action})
 
         if i_episode % save_freq == 0:
             ppo.save(os.path.join('runs/' + name, f"{i_episode}.pth"))
@@ -182,3 +199,8 @@ if __name__ == "__main__":
         with open(os.path.join('runs/' + name + '/state_action', f"out_{i_episode}.json"), "w") as f:
            json.dump(state_action_data, f)
     print(f"SAVING! {i_episode}")
+
+
+    for eval_game in ["IPD", "random", "randIPD", "noisy_IPD"]:
+        for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
+            eval.ppo(args, game=eval_game, opp_lr=lr)

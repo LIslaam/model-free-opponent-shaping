@@ -3,6 +3,7 @@ import json
 import torch
 import argparse
 from environments import NonMfosMetaGames
+from utils import setup_wandb
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -20,6 +21,8 @@ parser.add_argument("--lr", type=float, default=1)
 parser.add_argument("--opp_lr", type=float, default=1)
 parser.add_argument("--eval_game", type=str, default="IPD")
 args = parser.parse_args()
+
+setup_wandb(vars(args))
 
 if __name__ == "__main__":
     batch_size = 8192

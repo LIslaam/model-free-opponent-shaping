@@ -8,6 +8,7 @@ import json
 import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
 
 METHOD = 'supervised' # choose supervised or RNN methods
 
@@ -18,6 +19,7 @@ def inv_sigmoid(x):
 if METHOD == 'supervised':
     def get_data(file, episodes, batch_size, append_input=False):
         data = json.load(open(file))
+        #data = json.load(open("runs/DATA_COLLECTION_mfos_ppo_input_ipd_nl/state_action/out_1024.json")) # Hardcode extra data
         if append_input == True:
             state_data = np.zeros((batch_size*episodes, 7))
             action_data = np.zeros((batch_size*episodes, 5))
@@ -28,8 +30,11 @@ if METHOD == 'supervised':
         cycle = 0
         for i in range(len(data[0::batch_size])):
             for j in range(batch_size):
+                print(j)
                 state_data[j+cycle][:] = data[j+cycle]['state_agent'+str(j)]
                 action_data[j+cycle][:] = data[j+cycle]['action_agent'+str(j)]
+                #state_data[j+cycle + (batch_size*episodes)][:] = data2[j+cycle]['state_agent'+str(j)]
+                #action_data[j+cycle + (batch_size*episodes)][:] = data2[j+cycle]['action_agent'+str(j)]
             cycle += batch_size
 
         return (torch.nan_to_num(torch.Tensor(state_data))), (torch.nan_to_num(torch.Tensor(action_data)))
@@ -42,7 +47,7 @@ if METHOD == 'supervised':
             self.linear_relu_stack = nn.Sequential(
                 nn.Linear(state_dim, 128),
                 nn.Linear(128, 128),
-                nn.Dropout(p=0.75),
+                #nn.Dropout(p=0.75),
                 nn.Linear(128, action_dim), # Matching states to actions
             )
 
@@ -73,7 +78,7 @@ if METHOD == 'supervised':
         def run(self):
             # Hyperparameters
             model = self.model
-            learning_rate = 0.001
+            learning_rate = 0.0001
             num_epochs = 100
 
             # Shuffle data in place!
@@ -102,7 +107,7 @@ if METHOD == 'supervised':
             l2_lambda = 0.001
 
             # Define loss and optimizer
-            criterion = nn.MSELoss()
+            criterion = nn.BCELoss()
             optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=l2_lambda)
             scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.1) # Adding learning rate annealing
 
@@ -221,7 +226,7 @@ elif METHOD == 'RNN':
             model = self.model
 
             # Define loss and optimizer
-            criterion = nn.MSELoss()
+            criterion = nn.MAELoss()
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
             # Training loop

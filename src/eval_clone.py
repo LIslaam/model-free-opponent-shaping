@@ -25,7 +25,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
                     ###################################
-    batch_size = 8192 # 4096 for PPO # Make sure this matches the batch_size of the original file!
+    batch_size = 4096 #for PPO # Make sure this matches the batch_size of the original file!
     random_seed = args.seed
     num_steps = 100
 

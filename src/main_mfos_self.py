@@ -5,6 +5,7 @@ import os
 import argparse
 import json
 import numpy as np
+from utils import setup_wandb
 
 
 parser = argparse.ArgumentParser()
@@ -13,6 +14,8 @@ parser.add_argument("--entropy", type=float, default=0.01)
 parser.add_argument("--exp-name", type=str, default="")
 parser.add_argument("--checkpoint", type=str, default="")
 args = parser.parse_args()
+
+setup_wandb(vars(args))
 
 
 if __name__ == "__main__":

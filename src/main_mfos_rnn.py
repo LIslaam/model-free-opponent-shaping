@@ -5,6 +5,7 @@ from ga import Auxiliary
 import os
 import argparse
 import json
+from utils import setup_wandb
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -22,6 +23,8 @@ parser.add_argument("--lr", type=float, default=0.02)
 parser.add_argument("--rand_opp", type=bool, default=False) # Randomly sample opponent learning rates
 parser.add_argument("--collect_data", type=bool, default=False)
 args = parser.parse_args()
+
+setup_wandb(vars(args))
 
 #### IF append_input, we input the last reward
 
