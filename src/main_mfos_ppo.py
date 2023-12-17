@@ -26,9 +26,6 @@ parser.add_argument("--opp_lr", type=float, default=1)
 parser.add_argument("--rand_opp", type=bool, default=False) # Randomly sample opponent learning rates
 parser.add_argument("--collect_data", type=bool, default=False)
 parser.add_argument("--batch_size", type=int, default=4096)
-
-parser.add_argument("--eval_game", type=str, default="IPD")
-parser.add_argument("--eval_opp_lr", type=float, default=1)
 args = parser.parse_args()
 
 setup_wandb(vars(args))
@@ -48,7 +45,7 @@ if __name__ == "__main__":
     lr = args.lr # 0.002  # parameters for Adam optimizer
     betas = (0.9, 0.999)
 
-    max_episodes = 3 #2048
+    max_episodes = 1024 #2048
     batch_size = args.batch_size #4096
     random_seed = args.seed
     num_steps = 100

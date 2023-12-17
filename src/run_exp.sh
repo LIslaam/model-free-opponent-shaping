@@ -1,11 +1,10 @@
 #!/bin/bash
 
-for s in {0..4..1}; do
-  python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_noisyipd_x0_05_nl_seed"$s" --seed="$s"
-done
 for s in {0..2..1}; do
-
+  python3 src/main_mfos_ppo.py --game=IPD --opponent=LOLA --exp_name=mfos_ppo_ipd_lola_"$s"  --seed="$s"
+  python3 src/main_mfos_ppo.py --game=random --opponent=LOLA --exp_name=mfos_ppo_random_lola_"$s"  --seed="$s"
 done
+
 
 #python3 src/main_mfos_rnn.py --game=IPD --opponent=NL --exp_name=DATA_COLLECTION_mfos_newrnn_input_ipd_randopp_nl --rand_opp=True --seed=5 --append_input=True --collect_data=True
 #python3 src/main_mfos_rnn.py --game=randIPD --opponent=NL --exp_name=DATA_COLLECTION_mfos_newrnn_input_randipd_randopp_nl --rand_opp=True --seed=5 --append_input=True --collect_data=True
