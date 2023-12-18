@@ -44,10 +44,10 @@ def eval_ppo(args, game, opp, opp_lr, checkpoint):
                 json.dump(args.__dict__, f, indent=2)
 
     else:
-        print(f"RUNNING NAME: {'runs/' + name + '/test_' + game  + '_seed' + str(args.seed)}")
-        if not os.path.isdir('runs/' + name + '/test_' + game  + '_seed' + str(args.seed)):
-            os.mkdir('runs/' + name + '/test_' + game  + '_seed' + str(args.seed))
-            with open(os.path.join('runs/' + name + '/test_' + game  + '_seed' + str(args.seed), 
+        print(f"RUNNING NAME: {'runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr)}")
+        if not os.path.isdir('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr)):
+            os.mkdir('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr))
+            with open(os.path.join('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr), 
                                 "commandline_args.txt"), "w") as f:
                 json.dump(args.__dict__, f, indent=2)
 
