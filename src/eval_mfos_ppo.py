@@ -12,7 +12,7 @@ from utils.setup_wandb import setup_wandb
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def eval_ppo(args, game, opp, opp_lr, rand_opp, checkpoint):
+def eval_ppo(args, game, opp, opp_lr, checkpoint, rand_opp=False):
             ##############################
     
     args.rand_opp = rand_opp # Want to test against a fixed lr opponent
@@ -35,22 +35,22 @@ def eval_ppo(args, game, opp, opp_lr, rand_opp, checkpoint):
 
     aux = Auxiliary().to(device)
 
-    # if args.rand_opp:
-    #     opplr = str(opp_lr).replace('.','_')
-    #     print(f"RUNNING NAME: {'runs/' + name + '/test_clone' + game  + '_opplr_' + opplr}")
-    #     if not os.path.isdir('runs/' + name + '/test_clone' + game  + '_opplr_' + opplr):
-    #         os.mkdir('runs/' + name + '/test_clone' + game  + '_opplr_' + opplr)
-    #         with open(os.path.join('runs/' + name + '/test_clone' + game  + '_opplr_' + opplr, 
-    #                             "commandline_args.txt"), "w") as f:
-    #             json.dump(args.__dict__, f, indent=2)
+    if args.rand_opp:
+        opplr = str(opp_lr).replace('.','_')
+        print(f"RUNNING NAME: {'runs/' + name + '/test_' + game  + '_' + opp + '_randopp'}")
+        if not os.path.isdir('runs/' + name + '/test_' + game  + '_' + opp + '_randopp'):
+            os.mkdir('runs/' + name + '/test_' + game  + '_' + opp + '_randopp')
+            with open(os.path.join('runs/' + name + '/test_' + game  + '_' + opp + '_randopp', 
+                                "commandline_args.txt"), "w") as f:
+                json.dump(args.__dict__, f, indent=2)
 
-    # else:
-    print(f"RUNNING NAME: {'runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr)}")
-    if not os.path.isdir('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr)):
-        os.mkdir('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr))
-        with open(os.path.join('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr), 
-                            "commandline_args.txt"), "w") as f:
-            json.dump(args.__dict__, f, indent=2)
+    else:
+        print(f"RUNNING NAME: {'runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr)}")
+        if not os.path.isdir('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr)):
+            os.mkdir('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr))
+            with open(os.path.join('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr), 
+                                "commandline_args.txt"), "w") as f:
+                json.dump(args.__dict__, f, indent=2)
 
         #if not os.path.isdir('runs/' + name + '/test_' + game  + '_seed' + str(args.seed) + '_policy'):
          #   os.mkdir('runs/' + name + '/test_' + game  + '_seed' + str(args.seed) + '_policy')
@@ -174,6 +174,7 @@ args = parser.parse_args()
 setup_wandb(vars(args))
 
 for eval_game in ["IPD", "random", "randIPD", "noisyIPD"]:
-    for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
-        for opponent in ["NL", "LOLA"]:
+    for opponent in ["NL", "LOLA"]:
+        for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
             eval_ppo(args, game=eval_game, opp=opponent, opp_lr=lr, checkpoint=1024)
+        eval_ppo(args, game=eval_game, opp=opponent, opp_lr=1, rand_opp=True, checkpoint=1024)
