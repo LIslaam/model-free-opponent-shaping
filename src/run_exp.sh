@@ -1,11 +1,13 @@
 #!/bin/bash
 
 for s in {0..2..1}; do
-  python3 src/main_mfos_ppo.py --game=IPD --opponent=LOLA --exp_name=mfos_ppo_ipd_lola_"$s"  --seed="$s"
-  python3 src/main_mfos_ppo.py --game=random --opponent=LOLA --exp_name=mfos_ppo_random_lola_"$s"  --seed="$s"
+  python3 src/eval_mfos_ppo.py --game=IPD --opponent=LOLA --exp_name=mfos_ppo_ipd_lola_"$s"  --seed="$s"
+  python3 src/eval_mfos_ppo.py --game=random --opponent=LOLA --exp_name=mfos_ppo_random_lola_"$s"  --seed="$s"
 
   python3 src/main_mfos_ppo.py --game=randIPD --opponent=LOLA --exp_name=mfos_ppo_randipd_lola_"$s"  --seed="$s"
   python3 src/main_mfos_ppo.py --game=noisyIPD --opponent=LOLA --exp_name=mfos_ppo_noisyipd_x5e-2_lola_"$s"  --seed="$s"
+  python3 src/eval_mfos_ppo.py --game=randIPD --opponent=NL --exp_name=mfos_ppo_randipd_nl_"$s"  --seed="$s"
+  python3 src/eval_mfos_ppo.py --game=noisyIPD --opponent=NL --exp_name=mfos_ppo_noisyipd_x5e-2_nl_"$s"  --seed="$s"
 done
 
 
