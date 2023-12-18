@@ -8,13 +8,14 @@ import os
 import argparse
 import json
 import wandb
+from utils.setup_wandb import setup_wandb
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def eval_ppo(args, game, opp, opp_lr, checkpoint):
+def eval_ppo(args, game, opp, opp_lr, rand_opp, checkpoint):
             ##############################
     
-    args.rand_opp = False # Want to test against a fixed lr opponent
+    args.rand_opp = rand_opp # Want to test against a fixed lr opponent
     args.opponent = opp # Override choice of opponent
 
     K_epochs = 4  # update policy for K epochs
@@ -34,22 +35,22 @@ def eval_ppo(args, game, opp, opp_lr, checkpoint):
 
     aux = Auxiliary().to(device)
 
-    if args.rand_opp:
-        opplr = str(opp_lr).replace('.','_')
-        print(f"RUNNING NAME: {'runs/' + name + '/test_clone' + game  + '_opplr_' + opplr}")
-        if not os.path.isdir('runs/' + name + '/test_clone' + game  + '_opplr_' + opplr):
-            os.mkdir('runs/' + name + '/test_clone' + game  + '_opplr_' + opplr)
-            with open(os.path.join('runs/' + name + '/test_clone' + game  + '_opplr_' + opplr, 
-                                "commandline_args.txt"), "w") as f:
-                json.dump(args.__dict__, f, indent=2)
+    # if args.rand_opp:
+    #     opplr = str(opp_lr).replace('.','_')
+    #     print(f"RUNNING NAME: {'runs/' + name + '/test_clone' + game  + '_opplr_' + opplr}")
+    #     if not os.path.isdir('runs/' + name + '/test_clone' + game  + '_opplr_' + opplr):
+    #         os.mkdir('runs/' + name + '/test_clone' + game  + '_opplr_' + opplr)
+    #         with open(os.path.join('runs/' + name + '/test_clone' + game  + '_opplr_' + opplr, 
+    #                             "commandline_args.txt"), "w") as f:
+    #             json.dump(args.__dict__, f, indent=2)
 
-    else:
-        print(f"RUNNING NAME: {'runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr)}")
-        if not os.path.isdir('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr)):
-            os.mkdir('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr))
-            with open(os.path.join('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr), 
-                                "commandline_args.txt"), "w") as f:
-                json.dump(args.__dict__, f, indent=2)
+    # else:
+    print(f"RUNNING NAME: {'runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr)}")
+    if not os.path.isdir('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr)):
+        os.mkdir('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr))
+        with open(os.path.join('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr), 
+                            "commandline_args.txt"), "w") as f:
+            json.dump(args.__dict__, f, indent=2)
 
         #if not os.path.isdir('runs/' + name + '/test_' + game  + '_seed' + str(args.seed) + '_policy'):
          #   os.mkdir('runs/' + name + '/test_' + game  + '_seed' + str(args.seed) + '_policy')
@@ -104,14 +105,24 @@ def eval_ppo(args, game, opp, opp_lr, checkpoint):
         last_reward = reward.squeeze(-1)
 
         policy.append(state.cpu().numpy().tolist()) # Taken from Chris Lu notebooks paper plots-Copy2.ipynb
-        
-        for i, value in enumerate([*map(mean, zip(*state.cpu().numpy().tolist()))][:5]):   
-            wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_state_"+str(i): value})
-        for i, value in enumerate([*map(mean, zip(*action.cpu().numpy().tolist()))][:5]):   
-            wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_action_"+str(i): value})
 
-        wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_loss": -running_reward.mean() / num_steps})
-        wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_opp_loss": -running_opp_reward.mean() / num_steps})
+        if args.rand_opp:
+            for i, value in enumerate([*map(mean, zip(*state.cpu().numpy().tolist()))][:5]):   
+                wandb.log({"eval_"+opp+'_'+game+"_rand_opp"+"_state_"+str(i): value})
+            for i, value in enumerate([*map(mean, zip(*action.cpu().numpy().tolist()))][:5]):   
+                wandb.log({"eval_"+opp+'_'+game+"_rand_opp"+"_action_"+str(i): value})
+
+            wandb.log({"eval_"+opp+'_'+game+"_rand_opp"+"_loss": -running_reward.mean() / num_steps})
+            wandb.log({"eval_"+opp+'_'+game+"_rand_opp"+"_opp_loss": -running_opp_reward.mean() / num_steps})
+
+        else:
+            for i, value in enumerate([*map(mean, zip(*state.cpu().numpy().tolist()))][:5]):   
+                wandb.log({"eval_"+opp+'_'+game+"_opp_lr="+str(opp_lr)+"_state_"+str(i): value})
+            for i, value in enumerate([*map(mean, zip(*action.cpu().numpy().tolist()))][:5]):   
+                wandb.log({"eval_"+opp+'_'+game+"_opp_lr="+str(opp_lr)+"_action_"+str(i): value})
+
+            wandb.log({"eval_"+opp+'_'+game+"_opp_lr="+str(opp_lr)+"_loss": -running_reward.mean() / num_steps})
+            wandb.log({"eval_"+opp+'_'+game+"_opp_lr="+str(opp_lr)+"_opp_loss": -running_opp_reward.mean() / num_steps})
 
 
         memory.clear_memory()
@@ -130,14 +141,39 @@ def eval_ppo(args, game, opp, opp_lr, checkpoint):
         print(f"opponent loss: {-running_opp_reward.mean() / num_steps}", flush=True)
 
     if args.rand_opp:
-        ppo.save(os.path.join('runs/' + name + '/test_clone' + game + '_opplr_' + opplr, "eval.pth"))
-        with open(os.path.join('runs/' + name + '/test_clone' + game + '_opplr_' + opplr, "out_eval.json"), "w") as f:
+        ppo.save(os.path.join('runs/' + name + '/test_' + game  + '_' + opp + '_randopp', "eval.pth"))
+        with open(os.path.join('runs/' + name + '/test_' + game  + '_' + opp + '_randopp', "out_eval.json"), "w") as f:
             json.dump(rew_means, f)
     else:
-        ppo.save(os.path.join('runs/' + name + '/test_' + game + '_seed' + str(args.seed), "eval.pth"))
-        with open(os.path.join('runs/' + name + '/test_' + game + '_seed' + str(args.seed), "out_eval.json"), "w") as f:
+        ppo.save(os.path.join('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr), "eval.pth"))
+        with open(os.path.join('runs/' + name + '/test_' + game  + '_' + opp + '_lr=' + str(opp_lr), "out_eval.json"), "w") as f:
             json.dump(rew_means, f)
     #with open(os.path.join('runs/' + name + '/test_' + game + '_seed' + str(args.seed) + '_policy', 
      #                       f"out_eval.json"), "w") as f:
       #  json.dump(policy, f)
     print(f"SAVING!")
+
+################################################## EVAL ONLY ##################################################
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--game", type=str, required=True)
+parser.add_argument("--opponent", type=str, required=True)
+parser.add_argument("--entropy", type=float, default=0.01)
+parser.add_argument("--exp_name", type=str, default="")
+parser.add_argument("--checkpoint", type=str, default=None)
+parser.add_argument("--mamaml-id", type=int, default=0)
+parser.add_argument("--seed", type=int, default=None)
+parser.add_argument("--append_input", type=bool, default=False)
+parser.add_argument("--lr", type=float, default=0.002)
+parser.add_argument("--opp_lr", type=float, default=1)
+parser.add_argument("--rand_opp", type=bool, default=False) # Randomly sample opponent learning rates
+parser.add_argument("--collect_data", type=bool, default=False)
+parser.add_argument("--batch_size", type=int, default=4096)
+args = parser.parse_args()
+
+setup_wandb(vars(args))
+
+for eval_game in ["IPD", "random", "randIPD", "noisyIPD"]:
+    for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
+        for opponent in ["NL", "LOLA"]:
+            eval_ppo(args, game=eval_game, opp=opponent, opp_lr=lr, checkpoint=1024)
