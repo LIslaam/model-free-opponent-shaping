@@ -3,6 +3,9 @@
 for s in {0..2..1}; do
   python3 src/main_mfos_ppo.py --game=IPD --opponent=LOLA --exp_name=mfos_ppo_ipd_lola_"$s"  --seed="$s"
   python3 src/main_mfos_ppo.py --game=random --opponent=LOLA --exp_name=mfos_ppo_random_lola_"$s"  --seed="$s"
+
+  python3 src/main_mfos_ppo.py --game=IPD --opponent=NL --exp_name=mfos_ppo_ipd_nl_randopp_"$s" --rand_opp=True --seed="$s"
+  python3 src/main_mfos_ppo.py --game=random --opponent=NL --exp_name=mfos_ppo_random_nl_randopp_"$s" --rand_opp=True --seed="$s"
 done
 
 

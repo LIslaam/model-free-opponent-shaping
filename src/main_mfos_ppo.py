@@ -203,6 +203,7 @@ if __name__ == "__main__":
     print(f"SAVING! {i_episode}")
 
 
-    for eval_game in ["IPD", "random", "randIPD", "noisy_IPD"]:
+    for eval_game in ["IPD", "random", "randIPD", "noisyIPD"]:
         for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
-            eval_ppo(args, game=eval_game, opp_lr=lr, checkpoint=max_episodes)
+            for opponent in ["NL", "LOLA"]:
+                eval_ppo(args, game=eval_game, opp=opponent, opp_lr=lr, checkpoint=max_episodes)

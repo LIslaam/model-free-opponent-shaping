@@ -11,8 +11,12 @@ import wandb
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def eval_ppo(args, game, opp_lr, checkpoint):
+def eval_ppo(args, game, opp, opp_lr, checkpoint):
             ##############################
+    
+    args.rand_opp = False # Want to test against a fixed lr opponent
+    args.opponent = opp # Override choice of opponent
+
     K_epochs = 4  # update policy for K epochs
 
     eps_clip = 0.2  # clip parameter for PPO
@@ -106,8 +110,8 @@ def eval_ppo(args, game, opp_lr, checkpoint):
         for i, value in enumerate([*map(mean, zip(*action.cpu().numpy().tolist()))][:5]):   
             wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_action_"+str(i): value})
 
-        wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_loss": -running_reward.mean() / num_steps, 
-                   "eval_"+game+"_opp_lr="+str(opp_lr)+"_loss": -running_opp_reward.mean() / num_steps})
+        wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_loss": -running_reward.mean() / num_steps})
+        wandb.log({"eval_"+game+"_opp_lr="+str(opp_lr)+"_opp_loss": -running_opp_reward.mean() / num_steps})
 
 
         memory.clear_memory()
