@@ -204,6 +204,7 @@ if __name__ == "__main__":
 
 
     for eval_game in ["IPD", "random", "randIPD", "noisyIPD"]:
-        for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
-            for opponent in ["NL", "LOLA"]:
-                eval_ppo(args, game=eval_game, opp=opponent, opp_lr=lr, checkpoint=max_episodes)
+        for opponent in ["NL", "LOLA"]:
+            for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
+                eval_ppo(args, game=eval_game, opp=opponent, opp_lr=lr, checkpoint=1024)
+            eval_ppo(args, game=eval_game, opp=opponent, opp_lr=1, rand_opp=True, checkpoint=1024)

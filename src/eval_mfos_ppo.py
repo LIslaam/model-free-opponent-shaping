@@ -155,26 +155,26 @@ def eval_ppo(args, game, opp, opp_lr, checkpoint, rand_opp=False):
 
 ################################################## EVAL ONLY ##################################################
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--game", type=str, required=True)
-parser.add_argument("--opponent", type=str, required=True)
-parser.add_argument("--entropy", type=float, default=0.01)
-parser.add_argument("--exp_name", type=str, default="")
-parser.add_argument("--checkpoint", type=str, default=None)
-parser.add_argument("--mamaml-id", type=int, default=0)
-parser.add_argument("--seed", type=int, default=None)
-parser.add_argument("--append_input", type=bool, default=False)
-parser.add_argument("--lr", type=float, default=0.002)
-parser.add_argument("--opp_lr", type=float, default=1)
-parser.add_argument("--rand_opp", type=bool, default=False) # Randomly sample opponent learning rates
-parser.add_argument("--collect_data", type=bool, default=False)
-parser.add_argument("--batch_size", type=int, default=4096)
-args = parser.parse_args()
+# parser = argparse.ArgumentParser()
+# parser.add_argument("--game", type=str, required=True)
+# parser.add_argument("--opponent", type=str, required=True)
+# parser.add_argument("--entropy", type=float, default=0.01)
+# parser.add_argument("--exp_name", type=str, default="")
+# parser.add_argument("--checkpoint", type=str, default=None)
+# parser.add_argument("--mamaml-id", type=int, default=0)
+# parser.add_argument("--seed", type=int, default=None)
+# parser.add_argument("--append_input", type=bool, default=False)
+# parser.add_argument("--lr", type=float, default=0.002)
+# parser.add_argument("--opp_lr", type=float, default=1)
+# parser.add_argument("--rand_opp", type=bool, default=False) # Randomly sample opponent learning rates
+# parser.add_argument("--collect_data", type=bool, default=False)
+# parser.add_argument("--batch_size", type=int, default=4096)
+# args = parser.parse_args()
 
-setup_wandb(vars(args))
+# setup_wandb(vars(args))
 
-for eval_game in ["IPD", "random", "randIPD", "noisyIPD"]:
-    for opponent in ["NL", "LOLA"]:
-        for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
-            eval_ppo(args, game=eval_game, opp=opponent, opp_lr=lr, checkpoint=1024)
-        eval_ppo(args, game=eval_game, opp=opponent, opp_lr=1, rand_opp=True, checkpoint=1024)
+# for eval_game in ["IPD", "random", "randIPD", "noisyIPD"]:
+#     for opponent in ["NL", "LOLA"]:
+#         for lr in [3, 2.5, 2, 1.5, 1, 0.5, 0.05]:
+#             eval_ppo(args, game=eval_game, opp=opponent, opp_lr=lr, checkpoint=1024)
+#         eval_ppo(args, game=eval_game, opp=opponent, opp_lr=1, rand_opp=True, checkpoint=1024)
