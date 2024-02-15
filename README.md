@@ -15,6 +15,8 @@ NOTE: --append_input is set up to an auxilliary input in PPO (payout matrix pass
 The conditional state probability of the opponent is also saved within the output file in arrays [state (5 elements), probablity (5 elements)]
 
 
+
+# Original M-FOS readme
 ## Model-Free-Opponent Shaping
 
 #### In ICML 2022 (Spotlight) [[arXiv]](https://arxiv.org/abs/2205.01447)
